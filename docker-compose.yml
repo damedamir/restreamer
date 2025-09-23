@@ -39,7 +39,7 @@ services:
     volumes:
       - ./backend:/app
       - /var/run/docker.sock:/var/run/docker.sock
-    command: sh -c "npx prisma generate && npx prisma db push && npm run start"
+    command: sh -c "npx prisma generate && npx prisma db push && npm run build && npm run create-admin && npm run start"
 
   # Frontend
   frontend:

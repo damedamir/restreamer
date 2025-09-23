@@ -3,6 +3,37 @@
 # Custom Restreamer Setup Script
 echo "🚀 Setting up Custom Restreamer..."
 
+# Check if dependencies are installed
+echo "🔍 Checking dependencies..."
+
+# Check Docker
+if ! command -v docker &> /dev/null; then
+    echo "❌ Docker is not installed. Please run: ./scripts/install-dependencies.sh"
+    exit 1
+fi
+
+# Check Docker Compose
+if ! command -v docker-compose &> /dev/null; then
+    echo "❌ Docker Compose is not installed. Please run: ./scripts/install-dependencies.sh"
+    exit 1
+fi
+
+# Check if Docker is running
+if ! docker info > /dev/null 2>&1; then
+    echo "❌ Docker is not running. Please start Docker and try again."
+    echo "💡 If you just installed Docker, you may need to logout and login again."
+    exit 1
+fi
+
+# Check if user is in docker group
+if ! groups $USER | grep -q docker; then
+    echo "❌ User is not in docker group. Please run: ./scripts/install-dependencies.sh"
+    echo "💡 After running the install script, logout and login again."
+    exit 1
+fi
+
+echo "✅ All dependencies are installed and ready"
+
 # Check if .env exists, if not create it
 if [ ! -f .env ]; then
     echo "📝 Creating .env file from template..."
@@ -29,7 +60,7 @@ fi
 
 # Check if Docker Compose is available
 if ! command -v docker-compose &> /dev/null; then
-    echo "❌ Docker Compose is not installed. Please install Docker Compose and try again."
+    echo "❌ Docker Compose is not installed. Please run: ./scripts/install-dependencies.sh"
     exit 1
 fi
 

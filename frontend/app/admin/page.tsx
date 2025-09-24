@@ -2,9 +2,30 @@
 
 import { useState, useEffect } from 'react';
 
+interface Config {
+  id: number;
+  name: string;
+  status: 'Active' | 'Inactive';
+  selected: boolean;
+  created: string;
+  rtmpKey: string;
+  rtmpServer: string;
+  zoomId: string;
+  brandedUrls: number;
+}
+
+interface BrandedUrl {
+  id: number;
+  name: string;
+  url: string;
+  configId: number;
+  views: number;
+  created: string;
+}
+
 export default function AdminPage() {
   const [user, setUser] = useState({ email: 'damir.fatic@hotmail.com', name: 'Dame Company' });
-  const [configs, setConfigs] = useState([
+  const [configs, setConfigs] = useState<Config[]>([
     {
       id: 1,
       name: 'My stream',
@@ -13,38 +34,114 @@ export default function AdminPage() {
       created: '9/22/2025',
       rtmpKey: 'zmr_934fe5$48-CE9',
       rtmpServer: 'rtmp://173.212.253.79:1935/live',
-      zoomId: '84680945036'
+      zoomId: '84680945036',
+      brandedUrls: 2
+    }
+  ]);
+  const [brandedUrls, setBrandedUrls] = useState<BrandedUrl[]>([
+    {
+      id: 1,
+      name: 'Company Live Stream',
+      url: 'https://hive.restreamer.website/live/company-event',
+      configId: 1,
+      views: 150,
+      created: '9/22/2025'
+    },
+    {
+      id: 2,
+      name: 'Product Launch',
+      url: 'https://hive.restreamer.website/live/product-launch',
+      configId: 1,
+      views: 89,
+      created: '9/23/2025'
     }
   ]);
   const [activeTab, setActiveTab] = useState('Configs');
+  const [showCreateConfig, setShowCreateConfig] = useState(false);
+  const [newConfigName, setNewConfigName] = useState('');
 
   const handleSignOut = () => {
-    // Clear token and redirect to login
     localStorage.removeItem('token');
     window.location.href = '/';
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    // You could add a toast notification here
   };
 
-  const deleteConfig = (id: number) => {
-    setConfigs(configs.filter(config => config.id !== id));
-  };
-
-  const addConfiguration = () => {
-    const newConfig = {
+  const createConfig = () => {
+    if (!newConfigName.trim()) return;
+    
+    const newConfig: Config = {
       id: Date.now(),
-      name: `Configuration ${configs.length + 1}`,
+      name: newConfigName,
       status: 'Inactive',
       selected: false,
       created: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }),
       rtmpKey: `zmr_${Math.random().toString(36).substr(2, 9)}`,
       rtmpServer: 'rtmp://173.212.253.79:1935/live',
-      zoomId: Math.floor(Math.random() * 90000000000 + 10000000000).toString()
+      zoomId: Math.floor(Math.random() * 90000000000 + 10000000000).toString(),
+      brandedUrls: 0
     };
+    
     setConfigs([...configs, newConfig]);
+    setNewConfigName('');
+    setShowCreateConfig(false);
+  };
+
+  const cloneConfig = (config: Config) => {
+    const clonedConfig: Config = {
+      ...config,
+      id: Date.now(),
+      name: `${config.name} (Copy)`,
+      status: 'Inactive',
+      selected: false,
+      created: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }),
+      rtmpKey: `zmr_${Math.random().toString(36).substr(2, 9)}`,
+      brandedUrls: 0
+    };
+    setConfigs([...configs, clonedConfig]);
+  };
+
+  const deleteConfig = (id: number) => {
+    setConfigs(configs.filter(config => config.id !== id));
+    setBrandedUrls(brandedUrls.filter(url => url.configId !== id));
+  };
+
+  const selectConfig = (id: number) => {
+    setConfigs(configs.map(config => ({
+      ...config,
+      selected: config.id === id
+    })));
+  };
+
+  const createBrandedUrl = (configId: number) => {
+    const config = configs.find(c => c.id === configId);
+    if (!config) return;
+
+    const newUrl: BrandedUrl = {
+      id: Date.now(),
+      name: `${config.name} - Branded URL`,
+      url: `https://hive.restreamer.website/live/${config.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
+      configId,
+      views: 0,
+      created: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
+    };
+
+    setBrandedUrls([...brandedUrls, newUrl]);
+    setConfigs(configs.map(c => 
+      c.id === configId ? { ...c, brandedUrls: c.brandedUrls + 1 } : c
+    ));
+  };
+
+  const deleteBrandedUrl = (id: number) => {
+    const url = brandedUrls.find(u => u.id === id);
+    if (url) {
+      setConfigs(configs.map(c => 
+        c.id === url.configId ? { ...c, brandedUrls: c.brandedUrls - 1 } : c
+      ));
+    }
+    setBrandedUrls(brandedUrls.filter(u => u.id !== id));
   };
 
   return (
@@ -107,20 +204,45 @@ export default function AdminPage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Panel - Configurations */}
+        {activeTab === 'Configs' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-white">
-                Zoom Configurations ({configs.length})
+                Streaming Configurations ({configs.length})
               </h2>
               <button
-                onClick={addConfiguration}
+                onClick={() => setShowCreateConfig(true)}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
               >
-                + Add Configuration
+                + Create Configuration
               </button>
             </div>
+
+            {showCreateConfig && (
+              <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                <div className="flex items-center space-x-4">
+                  <input
+                    type="text"
+                    value={newConfigName}
+                    onChange={(e) => setNewConfigName(e.target.value)}
+                    placeholder="Configuration name"
+                    className="flex-1 px-3 py-2 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={createConfig}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
+                  >
+                    Create
+                  </button>
+                  <button
+                    onClick={() => setShowCreateConfig(false)}
+                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-4">
               {configs.map((config) => (
@@ -142,6 +264,18 @@ export default function AdminPage() {
                       )}
                     </div>
                     <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => selectConfig(config.id)}
+                        className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                      >
+                        Select
+                      </button>
+                      <button
+                        onClick={() => cloneConfig(config)}
+                        className="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+                      >
+                        Clone
+                      </button>
                       <button
                         onClick={() => copyToClipboard(config.rtmpKey)}
                         className="p-1 text-gray-400 hover:text-white transition-colors"
@@ -197,67 +331,200 @@ export default function AdminPage() {
                         </button>
                       </div>
                     </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-400">Branded URLs:</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-white">{config.brandedUrls}</span>
+                        <button
+                          onClick={() => createBrandedUrl(config.id)}
+                          className="px-2 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                        >
+                          + Add URL
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
+        )}
 
-          {/* Right Panel - Live Preview and Stats */}
+        {activeTab === 'Customize' && (
           <div className="space-y-6">
-            {/* Live Preview */}
+            <h2 className="text-lg font-semibold text-white">Customize Branding</h2>
             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-              <div className="flex items-center space-x-2 mb-4">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <h3 className="text-lg font-semibold text-white">Live Preview</h3>
-              </div>
-              
-              <div className="bg-gray-700 rounded-lg p-8 text-center">
-                <div className="w-16 h-16 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
+              <h3 className="text-lg font-medium text-white mb-4">Stream Branding</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Company Logo</label>
+                  <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 text-center">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-gray-400 text-sm mt-2">Upload logo (PNG, JPG)</p>
+                  </div>
                 </div>
-                <p className="text-white font-medium">{user.name}</p>
-                <p className="text-gray-400 text-sm">ID: {configs[0]?.zoomId || '84680945036'}</p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Brand Colors</label>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <input type="color" className="w-8 h-8 rounded border border-gray-600" defaultValue="#3B82F6" />
+                      <span className="text-sm text-gray-300">Primary Color</span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <input type="color" className="w-8 h-8 rounded border border-gray-600" defaultValue="#1F2937" />
+                      <span className="text-sm text-gray-300">Secondary Color</span>
+                    </div>
+                  </div>
+                </div>
               </div>
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-300 mb-2">Overlay Text</label>
+                <input
+                  type="text"
+                  placeholder="Enter overlay text (e.g., 'Live from Company HQ')"
+                  className="w-full px-3 py-2 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <button className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors">
+                Save Branding
+              </button>
             </div>
+          </div>
+        )}
 
-            {/* Quick Stats */}
+        {activeTab === 'URLs' && (
+          <div className="space-y-6">
+            <h2 className="text-lg font-semibold text-white">Branded URLs ({brandedUrls.length})</h2>
+            <div className="space-y-4">
+              {brandedUrls.map((url) => (
+                <div key={url.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-lg font-medium text-white">{url.name}</h3>
+                      <p className="text-sm text-gray-400">Created: {url.created}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-400">{url.views} views</span>
+                      <button
+                        onClick={() => copyToClipboard(url.url)}
+                        className="p-1 text-gray-400 hover:text-white transition-colors"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => deleteBrandedUrl(url.id)}
+                        className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <code className="flex-1 text-sm text-white bg-gray-700 px-3 py-2 rounded">
+                      {url.url}
+                    </code>
+                    <button
+                      onClick={() => window.open(url.url, '_blank')}
+                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
+                    >
+                      Open
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'Embed' && (
+          <div className="space-y-6">
+            <h2 className="text-lg font-semibold text-white">Embed Code</h2>
             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-              <div className="flex items-center space-x-2 mb-4">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <h3 className="text-lg font-semibold text-white">Quick Stats</h3>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Configuration:</span>
-                  <span className="text-white">{configs[0]?.name || 'My stream'}</span>
+              <h3 className="text-lg font-medium text-white mb-4">HTML Embed Code</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Select Configuration</label>
+                  <select className="w-full px-3 py-2 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    {configs.map(config => (
+                      <option key={config.id} value={config.id}>{config.name}</option>
+                    ))}
+                  </select>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Zoom ID:</span>
-                  <span className="text-white">{configs[0]?.zoomId || '84680945036'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Branded URLs:</span>
-                  <span className="text-white">2</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Status:</span>
-                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-900 text-blue-300">
-                    Ready
-                  </span>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Embed Code</label>
+                  <textarea
+                    readOnly
+                    value={`<iframe src="https://hive.restreamer.website/embed/stream" width="800" height="450" frameborder="0" allowfullscreen></iframe>`}
+                    className="w-full h-32 px-3 py-2 bg-gray-700 text-white rounded-md border border-gray-600 font-mono text-sm"
+                  />
+                  <button
+                    onClick={() => copyToClipboard(`<iframe src="https://hive.restreamer.website/embed/stream" width="800" height="450" frameborder="0" allowfullscreen></iframe>`)}
+                    className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+                  >
+                    Copy Embed Code
+                  </button>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {activeTab === 'RTMP' && (
+          <div className="space-y-6">
+            <h2 className="text-lg font-semibold text-white">RTMP Configuration</h2>
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+              <h3 className="text-lg font-medium text-white mb-4">Streaming Setup</h3>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-md font-medium text-white mb-2">Zoom Integration</h4>
+                  <p className="text-sm text-gray-400 mb-3">
+                    Use these settings in your Zoom meeting to stream to our platform:
+                  </p>
+                  <div className="bg-gray-700 p-4 rounded-lg">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-300">Stream URL:</span>
+                        <code className="text-sm text-white bg-gray-600 px-2 py-1 rounded">
+                          rtmp://173.212.253.79:1935/live
+                        </code>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-300">Stream Key:</span>
+                        <code className="text-sm text-white bg-gray-600 px-2 py-1 rounded">
+                          {configs.find(c => c.selected)?.rtmpKey || 'Select a configuration'}
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-md font-medium text-white mb-2">OBS Studio Setup</h4>
+                  <p className="text-sm text-gray-400 mb-3">
+                    Configure OBS Studio to stream to our platform:
+                  </p>
+                  <div className="bg-gray-700 p-4 rounded-lg">
+                    <ol className="text-sm text-gray-300 space-y-1">
+                      <li>1. Open OBS Studio</li>
+                      <li>2. Go to Settings → Stream</li>
+                      <li>3. Set Service to "Custom"</li>
+                      <li>4. Enter Server: <code className="bg-gray-600 px-1 rounded">rtmp://173.212.253.79:1935/live</code></li>
+                      <li>5. Enter Stream Key: <code className="bg-gray-600 px-1 rounded">{configs.find(c => c.selected)?.rtmpKey || 'Select a configuration'}</code></li>
+                      <li>6. Click "Start Streaming"</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

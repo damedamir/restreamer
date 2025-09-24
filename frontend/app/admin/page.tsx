@@ -31,6 +31,18 @@ export default function AdminPage() {
   const [newConfigName, setNewConfigName] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Get the correct API base URL based on environment
+  const getApiBaseUrl = () => {
+    if (typeof window !== 'undefined') {
+      // Client-side: check if we're on localhost
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:3001/api';
+      }
+    }
+    // Server-side or production: use relative URLs (will be proxied by nginx)
+    return '/api';
+  };
+
   // Load data on component mount
   useEffect(() => {
     loadConfigurations();
@@ -40,7 +52,7 @@ export default function AdminPage() {
   const loadConfigurations = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/configurations', {
+      const response = await fetch(`${getApiBaseUrl()}/configurations`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -58,7 +70,7 @@ export default function AdminPage() {
   const loadBrandedUrls = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/branded-urls', {
+      const response = await fetch(`${getApiBaseUrl()}/branded-urls`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -88,7 +100,7 @@ export default function AdminPage() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/configurations', {
+      const response = await fetch(`${getApiBaseUrl()}/configurations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -115,7 +127,7 @@ export default function AdminPage() {
   const cloneConfig = async (config: Config) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/configurations/${config.id}/clone`, {
+      const response = await fetch(`${getApiBaseUrl()}/configurations/${config.id}/clone`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -136,7 +148,7 @@ export default function AdminPage() {
   const deleteConfig = async (id: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/configurations/${id}`, {
+      const response = await fetch(`${getApiBaseUrl()}/configurations/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -157,7 +169,7 @@ export default function AdminPage() {
   const selectConfig = async (id: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/configurations/${id}`, {
+      const response = await fetch(`${getApiBaseUrl()}/configurations/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -182,7 +194,7 @@ export default function AdminPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/branded-urls', {
+      const response = await fetch('${getApiBaseUrl()}/branded-urls', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -209,7 +221,7 @@ export default function AdminPage() {
   const deleteBrandedUrl = async (id: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/branded-urls/${id}`, {
+      const response = await fetch(`${getApiBaseUrl()}/branded-urls/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

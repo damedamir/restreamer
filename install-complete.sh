@@ -40,6 +40,8 @@ PROJECT_DIR="custom-restreamer"
 if [ -d "$PROJECT_DIR" ]; then
     echo "📁 Project directory exists, updating..."
     cd $PROJECT_DIR
+    # Handle any local changes
+    git reset --hard HEAD
     git pull origin main
 else
     echo "📁 Creating project directory..."

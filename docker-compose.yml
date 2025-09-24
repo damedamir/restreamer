@@ -22,7 +22,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.working
+      dockerfile: Dockerfile.final
     environment:
       DATABASE_URL: postgresql://postgres:password@postgres:5432/custom_restreamer
       PORT: 3001

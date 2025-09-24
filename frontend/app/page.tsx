@@ -35,86 +35,84 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-blue-600 rounded-xl flex items-center justify-center mb-4">
-            <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
+        {/* Large Icons */}
+        <div className="text-center space-y-8">
+          {/* Video Camera Icon */}
+          <div className="flex justify-center">
+            <div className="w-24 h-24 border-4 border-black rounded-lg flex items-center justify-center">
+              <svg className="w-12 h-12 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-blue-600 mb-2">Restreamer Pro</h1>
-          <p className="text-gray-400 text-sm">Access your streaming dashboard</p>
+
+          {/* @ Symbol Icon */}
+          <div className="flex justify-center">
+            <div className="w-24 h-24 border-4 border-black rounded-full flex items-center justify-center">
+              <span className="text-4xl font-bold text-black">@</span>
+            </div>
+          </div>
+
+          {/* Padlock Icon */}
+          <div className="flex justify-center">
+            <div className="w-24 h-24 border-4 border-black rounded-lg flex items-center justify-center">
+              <svg className="w-12 h-12 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+          </div>
         </div>
 
-        {/* Login Form */}
-        <div className="bg-gray-800 rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-xl font-semibold text-white mb-6">Authentication</h2>
-          
-          <form onSubmit={handleLogin} className="space-y-6">
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                  </svg>
-                </div>
+        {/* Content Section */}
+        <div className="space-y-8">
+          {/* Restreamer Pro Section */}
+          <div className="text-left">
+            <h1 className="text-3xl font-bold text-black mb-2">Restreamer Pro</h1>
+            <p className="text-gray-600">Access your streaming dashboard</p>
+          </div>
+
+          {/* Authentication Section */}
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-black">Authentication</h2>
+            
+            <form onSubmit={handleLogin} className="space-y-4">
+              {/* Email Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email address
+                </label>
                 <input
-                  id="email"
-                  name="email"
                   type="email"
-                  autoComplete="email"
-                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none relative block w-full pl-10 pr-12 py-3 bg-gray-700 border border-gray-600 placeholder-gray-400 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter your email"
-                />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  <div className="w-1 h-6 bg-gray-500 rounded"></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
                   required
+                />
+              </div>
+
+              {/* Password Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Password
+                </label>
+                <input
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none relative block w-full pl-10 pr-12 py-3 bg-gray-700 border border-gray-600 placeholder-gray-400 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter your password"
+                  required
                 />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  <div className="w-1 h-6 bg-gray-500 rounded"></div>
-                </div>
               </div>
-            </div>
 
-            {/* Login Button */}
-            <div>
+              {/* Sign In Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <div className="flex items-center">
@@ -126,26 +124,23 @@ export default function HomePage() {
                   </div>
                 ) : (
                   <div className="flex items-center">
-                    Sign In
+                    Sign in
                     <svg className="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
                   </div>
                 )}
               </button>
-            </div>
-          </form>
+            </form>
 
-          {/* Demo Access */}
-          <div className="mt-6 pt-6 border-t border-gray-700">
+            {/* Demo Access */}
             <div className="text-center">
-              <p className="text-sm text-gray-400 mb-3">Demo Access</p>
               <button
                 onClick={() => {
                   setEmail('admin@demo.com');
                   setPassword('demo123');
                 }}
-                className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
               >
                 Use demo credentials
               </button>
@@ -154,9 +149,9 @@ export default function HomePage() {
         </div>
 
         {/* Footer */}
-        <div className="text-center">
+        <div className="text-left">
           <p className="text-gray-500 text-sm">
-            &copy; 2024 Restreamer Pro. Professional streaming made simple.
+            © 2024 Restreamer Pro. Professional streaming made simple.
           </p>
         </div>
       </div>

@@ -133,7 +133,7 @@ export default function AdminPage() {
     }
   };
 
-  const deleteConfig = async (id: number) => {
+  const deleteConfig = async (id: string) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`/api/configurations/${id}`, {
@@ -154,7 +154,7 @@ export default function AdminPage() {
     }
   };
 
-  const selectConfig = async (id: number) => {
+  const selectConfig = async (id: string) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`/api/configurations/${id}`, {
@@ -176,7 +176,7 @@ export default function AdminPage() {
     }
   };
 
-  const createBrandedUrl = async (configId: number) => {
+  const createBrandedUrl = async (configId: string) => {
     const config = configs.find(c => c.id === configId);
     if (!config) return;
 
@@ -206,7 +206,7 @@ export default function AdminPage() {
     }
   };
 
-  const deleteBrandedUrl = async (id: number) => {
+  const deleteBrandedUrl = async (id: string) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`/api/branded-urls/${id}`, {

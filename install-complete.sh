@@ -478,8 +478,8 @@ app.get('/api/test', (req, res) => {
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(\`🚀 Backend server running on port \${PORT}\`);
-  console.log(\`📊 Health check: http://localhost:\${PORT}/health\`);
+  console.log('🚀 Backend server running on port ' + PORT);
+  console.log('📊 Health check: http://localhost:' + PORT + '/health');
 });
 
 // Graceful shutdown
@@ -693,7 +693,7 @@ async function createAdmin() {
     console.error('❌ Error creating admin user:', error);
     process.exit(1);
   } finally {
-    await prisma.\$disconnect();
+    await prisma.$disconnect();
   }
 }
 

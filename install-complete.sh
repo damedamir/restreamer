@@ -528,9 +528,10 @@ model Stream {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user        User           @relation(fields: [userId], references: [id])
-  streamStatus StreamStatus?
-  brandedUrl  BrandedUrl?
+  user               User                @relation(fields: [userId], references: [id])
+  streamStatus       StreamStatus?
+  brandedUrl         BrandedUrl?
+  streamConfiguration StreamConfiguration?
 
   @@map("streams")
 }

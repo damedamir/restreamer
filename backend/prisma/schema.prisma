@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,12 +11,11 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
-  name      String?
-  role      Role     @default(USER)
+  name      String
+  role      String   @default("USER")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
   streams Stream[]
 
   @@map("users")
@@ -27,76 +23,65 @@ model User {
 
 model Stream {
   id          String   @id @default(cuid())
-  slug        String   @unique
   name        String
   description String?
-  isLive      Boolean  @default(false)
-  viewers     Int      @default(0)
-  streamUrl   String?
-  metadata    Json?
+  slug        String   @unique
+  userId      String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relations
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  config     StreamConfig?
-  viewersLog ViewerLog[]
+  user               User                @relation(fields: [userId], references: [id])
+  streamStatus       StreamStatus?
+  brandedUrl         BrandedUrl?
+  streamConfiguration StreamConfiguration?
 
   @@map("streams")
 }
 
-model StreamConfig {
-  id           String  @id @default(cuid())
-  streamId     String  @unique
-  stream       Stream  @relation(fields: [streamId], references: [id], onDelete: Cascade)
-  
-  // Branding
-  brandColor   String  @default("#111827")
-  logoUrl      String?
-  overlayText  String?
-  customCss    String?
-  
-  // Stream settings
-  rtmpKey      String?
-  hlsUrl       String?
-  
-  // Offline content
-  offlineTitle    String?
-  offlineMessage  String?
-  offlineImageUrl String?
-  
+model StreamConfiguration {
+  id        String   @id @default(cuid())
+  streamId  String   @unique
+  rtmpUrl   String?
+  hlsUrl    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("stream_configs")
+  stream Stream @relation(fields: [streamId], references: [id])
+
+  @@map("stream_configurations")
 }
 
-model ViewerLog {
+model BrandedUrl {
+  id        String   @id @default(cuid())
+  streamId  String   @unique
+  customUrl String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stream Stream @relation(fields: [streamId], references: [id])
+
+  @@map("branded_urls")
+}
+
+model StreamStatus {
+  id        String   @id @default(cuid())
+  streamId  String   @unique
+  isLive    Boolean  @default(false)
+  viewers   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stream Stream @relation(fields: [streamId], references: [id])
+
+  @@map("stream_status")
+}
+
+model Viewer {
   id        String   @id @default(cuid())
   streamId  String
-  stream    Stream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
-  ipAddress String?
-  userAgent String?
+  sessionId String
   joinedAt  DateTime @default(now())
   leftAt    DateTime?
 
-  @@map("viewer_logs")
-}
-
-model WebhookLog {
-  id        String   @id @default(cuid())
-  event     String   // 'start' | 'stop' | 'viewer_join' | 'viewer_leave'
-  streamId  String?
-  data      Json?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-
-  @@map("webhook_logs")
-}
-
-enum Role {
-  USER
-  ADMIN
+  @@map("viewers")
 }

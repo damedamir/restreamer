@@ -11,6 +11,10 @@ RUN npm install
 # Copy source code
 COPY . .
 
+# Debug: List files to see what was copied
+RUN echo "=== Files in /app ===" && ls -la
+RUN echo "=== Files in /app/src ===" && ls -la src/ || echo "src directory not found"
+
 # Generate Prisma client
 RUN npx prisma generate
 

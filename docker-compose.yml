@@ -22,7 +22,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.simple
     environment:
       DATABASE_URL: postgresql://postgres:password@postgres:5432/custom_restreamer
       PORT: 3001
@@ -39,7 +39,6 @@ services:
     volumes:
       - ./backend:/app
       - /var/run/docker.sock:/var/run/docker.sock
-    command: sh -c "npx prisma generate && npx prisma db push && npm run build && npm run create-admin && npm run start"
 
   # Frontend
   frontend:

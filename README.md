@@ -1,235 +1,277 @@
 # Custom Restreamer
 
-A modern, self-hosted streaming platform for creating custom branded streaming URLs with RTMP ingestion and HLS delivery.
+A complete, self-hosted streaming platform built with modern technologies. Perfect for replacing Supabase with your own backend infrastructure.
 
-## Features
+## 🚀 Quick Start
 
-- 🎥 **RTMP Ingestion** - Stream from OBS, Zoom, or any RTMP source
-- 🎨 **Custom Branding** - Personalized stream pages with logos, colors, and overlays
-- 📱 **Responsive Design** - Works on desktop, tablet, and mobile
-- ⚡ **Low Latency** - Optimized HLS delivery with minimal delay
-- 🔄 **Real-time Updates** - Live viewer counts and stream status
-- 🛠️ **Admin Interface** - Manage streams, configurations, and settings
-- 🐳 **Docker Ready** - Easy deployment with Docker Compose
-- 🔒 **SSL Ready** - Automatic HTTPS configuration
-
-## Quick Start
-
-### **One-Line Installation (Ubuntu/Debian)**
+### One-Line Installation
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/damedamir/custom-restreamer/main/install.sh | bash
 ```
 
-### **Manual Installation**
+### Manual Installation
 
 ```bash
-# 1. Clone repository
+# Clone the repository
 git clone https://github.com/damedamir/custom-restreamer.git
 cd custom-restreamer
 
-# 2. Install dependencies (Docker, Certbot, Nginx, etc.)
-./scripts/install-dependencies.sh
-
-# 3. Logout and login again (for Docker group)
-logout
-# (login again)
-
-# 4. Setup application
-./scripts/setup.sh
+# Run the complete installation
+chmod +x install-complete.sh
+./install-complete.sh
 ```
 
-### **Step-by-Step Manual Installation**
+## ✨ Features
 
-For detailed step-by-step instructions, see [MANUAL_INSTALL.md](./MANUAL_INSTALL.md)
+- **Complete Admin Dashboard** - Manage streams, users, and analytics
+- **Real-time Streaming** - WebSocket support for live updates
+- **Modern Tech Stack** - Next.js 14, Express, Prisma, PostgreSQL
+- **Docker Ready** - Full containerization with Docker Compose
+- **SSL Support** - Automatic HTTPS with Let's Encrypt
+- **RTMP Support** - Nginx RTMP module for streaming
+- **Responsive UI** - Beautiful, mobile-friendly interface
 
-### **Production Deployment**
+## 🛠️ Tech Stack
+
+### Frontend
+- **Next.js 14** - React framework with App Router
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Utility-first CSS framework
+- **shadcn/ui** - Beautiful UI components
+- **Radix UI** - Accessible component primitives
+
+### Backend
+- **Node.js** - JavaScript runtime
+- **Express** - Web framework
+- **Prisma** - Modern database ORM
+- **PostgreSQL** - Reliable database
+- **WebSockets** - Real-time communication
+
+### Infrastructure
+- **Docker** - Containerization
+- **Nginx** - Reverse proxy and RTMP server
+- **Let's Encrypt** - SSL certificates
+- **Docker Compose** - Multi-container orchestration
+
+## 📁 Project Structure
+
+```
+custom-restreamer/
+├── frontend/                 # Next.js frontend application
+│   ├── app/
+│   │   ├── admin/           # Admin dashboard
+│   │   ├── stream/          # Stream viewer pages
+│   │   └── page.tsx         # Landing page
+│   ├── components/          # React components
+│   └── public/              # Static assets
+├── backend/                 # Express.js backend API
+│   ├── src/
+│   │   ├── routes/          # API routes
+│   │   ├── middleware/      # Express middleware
+│   │   └── scripts/         # Utility scripts
+│   └── prisma/              # Database schema
+├── nginx/                   # Nginx configuration
+├── scripts/                 # Automation scripts
+├── docker-compose.yml       # Docker services
+└── install-complete.sh      # Complete installation script
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+The installation script automatically creates a `.env` file with the following variables:
+
+```env
+# Database
+DATABASE_URL=postgresql://postgres:password@postgres:5432/custom_restreamer
+
+# JWT Secret
+JWT_SECRET=your-super-secure-jwt-secret-key
+
+# Webhook Secret
+WEBHOOK_SECRET=your-webhook-secret
+
+# CORS Origin
+CORS_ORIGIN=https://hive.restreamer.website
+
+# Public URLs
+PUBLIC_HLS_URL=https://hive.restreamer.website/hls
+PUBLIC_WS_BASE=wss://hive.restreamer.website
+
+# Admin User
+ADMIN_EMAIL=admin@hive.restreamer.website
+ADMIN_PASSWORD=admin123
+```
+
+### Domain Configuration
+
+To configure for your domain:
 
 ```bash
-# Configure for your domain
-./deploy.sh yourdomain.com
-
-# Get SSL certificate
-sudo certbot certonly --standalone -d yourdomain.com
-
-# Start production
-docker-compose down && docker-compose up -d
+./scripts/configure-domain.sh your-domain.com
 ```
 
-## What Gets Installed
+### SSL Certificates
 
-### **Dependencies:**
-- ✅ **Docker** - Container runtime
-- ✅ **Docker Compose** - Multi-container orchestration  
-- ✅ **Certbot** - SSL certificate management
-- ✅ **Nginx** - Web server with RTMP module
-- ✅ **Node.js** - JavaScript runtime
-- ✅ **UFW Firewall** - Security configuration
-
-### **Services:**
-- ✅ **PostgreSQL** - Database
-- ✅ **Backend API** - Express.js server
-- ✅ **Frontend** - Next.js application
-- ✅ **Nginx** - Reverse proxy + RTMP server
-
-## Access Your Application
-
-After installation:
-
-- **Frontend**: http://localhost:3000
-- **Admin Panel**: http://localhost:3000/admin
-- **API Health**: http://localhost:3001/health
-
-### **Default Admin Credentials:**
-- **Email**: admin@example.com
-- **Password**: admin123
-
-## Streaming Setup
-
-### **OBS Settings:**
-- **Server**: `rtmp://yourdomain.com/live`
-- **Stream Key**: `your-stream-slug`
-
-### **Zoom Settings:**
-- **RTMP URL**: `rtmp://yourdomain.com/live`
-- **Stream Key**: `your-stream-slug`
-
-### **View Stream:**
-- Visit: `http://yourdomain.com/stream/your-stream-slug`
-
-## Tech Stack
-
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS, shadcn/ui
-- **Backend**: Node.js, Express, TypeScript, Prisma
-- **Database**: PostgreSQL
-- **Streaming**: Nginx RTMP + HLS
-- **Real-time**: WebSockets
-- **Deployment**: Docker, Docker Compose
-
-## Architecture
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   OBS/Zoom     │───▶│  Nginx RTMP     │───▶│  HLS Segments   │
-│   (RTMP)       │    │  (Ingestion)    │    │  (Delivery)     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                │
-                                ▼
-                       ┌─────────────────┐
-                       │  Backend API    │
-                       │  (Webhooks)     │
-                       └─────────────────┘
-                                │
-                                ▼
-                       ┌─────────────────┐
-                       │   Frontend      │
-                       │  (Viewer)       │
-                       └─────────────────┘
-```
-
-## Management Commands
+To get SSL certificates:
 
 ```bash
+sudo certbot certonly --standalone -d your-domain.com
+```
+
+## 🚀 Deployment
+
+### Local Development
+
+```bash
+# Start all services
+docker-compose up -d
+
 # View logs
 docker-compose logs -f
 
 # Stop services
 docker-compose down
-
-# Restart services
-docker-compose restart
-
-# Update and restart
-docker-compose up -d --build
-
-# Test builds
-./scripts/test-build.sh
 ```
 
-## Configuration
+### Production Deployment
 
-### **Environment Variables:**
-```env
-# Database
-DATABASE_URL="postgresql://postgres:password@postgres:5432/custom_restreamer"
+1. **Configure your domain**:
+   ```bash
+   ./scripts/configure-domain.sh your-domain.com
+   ```
 
-# Server
-PORT=3001
-NODE_ENV=production
+2. **Get SSL certificates**:
+   ```bash
+   sudo certbot certonly --standalone -d your-domain.com
+   ```
 
-# CORS (replace with your domain)
-CORS_ORIGIN="http://localhost:3000,https://yourdomain.com"
+3. **Start services**:
+   ```bash
+   docker-compose up -d
+   ```
 
-# Webhooks
-WEBHOOK_SECRET="your-secret-key"
+4. **Access your application**:
+   - Frontend: `https://your-domain.com`
+   - Admin: `https://your-domain.com/admin`
+   - API: `https://your-domain.com/api/health`
 
-# Streaming
-RTMP_PORT=1935
-HLS_PATH="/var/www/hls"
-PUBLIC_HLS_URL="https://yourdomain.com/hls"
+## 📊 Admin Dashboard
 
-# Admin
-ADMIN_EMAIL="admin@example.com"
-ADMIN_PASSWORD="admin123"
+The admin dashboard provides:
 
-# JWT
-JWT_SECRET="your-jwt-secret"
-```
+- **Stream Management** - Create, edit, and monitor streams
+- **User Management** - Manage user accounts and permissions
+- **Analytics** - View streaming statistics and metrics
+- **Real-time Monitoring** - Live stream status and viewer counts
 
-## Documentation
+Access the admin dashboard at `/admin` after installation.
 
-- **[Manual Installation](./MANUAL_INSTALL.md)** - Complete step-by-step installation
-- **[Troubleshooting](./TROUBLESHOOTING.md)** - Common issues and solutions
-- **[Deployment Guide](./DEPLOYMENT.md)** - Production deployment
-- **[Local Testing](./LOCAL_TEST.md)** - Development setup
+## 🔌 API Endpoints
 
-## Troubleshooting
+### Authentication
+- `POST /api/auth/login` - User login
+- `POST /api/auth/register` - User registration
 
-### **Common Issues:**
+### Streams
+- `GET /api/streams` - List all streams
+- `GET /api/streams/:slug` - Get stream by slug
+- `POST /api/streams` - Create new stream
+- `PUT /api/streams/:id` - Update stream
 
-**1. Docker permission denied:**
+### Admin
+- `GET /api/admin/dashboard` - Admin dashboard data
+- `GET /api/admin/streams` - Admin stream management
+- `GET /api/admin/users` - Admin user management
+
+### Webhooks
+- `POST /api/webhooks/start` - Stream start webhook
+- `POST /api/webhooks/stop` - Stream stop webhook
+
+## 🐳 Docker Services
+
+The application runs with the following Docker services:
+
+- **postgres** - PostgreSQL database
+- **backend** - Express.js API server
+- **frontend** - Next.js frontend application
+- **nginx** - Reverse proxy and RTMP server
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+1. **Port 80 already in use**:
+   ```bash
+   sudo systemctl stop nginx
+   sudo systemctl disable nginx
+   ```
+
+2. **Docker permission denied**:
+   ```bash
+   sudo usermod -aG docker $USER
+   # Logout and login again
+   ```
+
+3. **Database connection failed**:
+   ```bash
+   docker-compose logs postgres
+   docker-compose restart postgres
+   ```
+
+4. **Frontend static files not loading**:
+   ```bash
+   docker-compose build frontend
+   docker-compose up -d frontend
+   ```
+
+### Logs
+
+View service logs:
+
 ```bash
-sudo usermod -aG docker $USER
-# Logout and login again
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f backend
+docker-compose logs -f frontend
+docker-compose logs -f postgres
 ```
 
-**2. Port conflicts:**
-```bash
-sudo netstat -tulpn | grep :3000
-sudo systemctl stop nginx
-```
+## 🤝 Contributing
 
-**3. SSL certificate issues:**
-```bash
-sudo certbot certificates
-sudo certbot renew
-```
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-**4. Database issues:**
-```bash
-docker-compose exec postgres pg_isready -U postgres
-docker-compose down -v && docker-compose up -d
-```
+## 📄 License
 
-**5. Build issues:**
-```bash
-# Test individual builds
-./scripts/test-build.sh
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-# Rebuild everything
-docker-compose down
-docker-compose up -d --build
-```
+## 🆘 Support
 
-## Support
+If you encounter any issues:
 
-- **Issues**: [GitHub Issues](https://github.com/damedamir/custom-restreamer/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/damedamir/custom-restreamer/discussions)
+1. Check the troubleshooting section
+2. View the logs for error messages
+3. Create an issue on GitHub
+4. Check the documentation
 
-## License
+## 🎯 Roadmap
 
-MIT
+- [ ] RTMP streaming integration
+- [ ] Advanced analytics
+- [ ] User authentication system
+- [ ] Stream recording
+- [ ] Multi-tenant support
+- [ ] Mobile app
+- [ ] API rate limiting
+- [ ] Advanced admin features
 
 ---
 
-**Happy Streaming! 🎥**
+**Built with ❤️ for the streaming community**

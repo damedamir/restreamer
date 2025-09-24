@@ -197,6 +197,17 @@ ADMINEOF
 # Create complete backend structure
 echo "🔧 Setting up backend..."
 
+# Create necessary directories
+mkdir -p backend/src/routes
+mkdir -p backend/src/middleware
+mkdir -p backend/src/scripts
+mkdir -p backend/src/websocket
+mkdir -p backend/prisma
+mkdir -p frontend/app/admin
+mkdir -p frontend/components
+mkdir -p frontend/public
+mkdir -p nginx
+
 # Create admin routes
 cat > backend/src/routes/admin.ts << 'ADMINROUTESEOF'
 import express from 'express';
@@ -264,6 +275,427 @@ router.get('/users', async (req, res) => {
 
 export default router;
 ADMINROUTESEOF
+
+# Create other backend routes
+cat > backend/src/routes/auth.ts << 'AUTHROUTESEOF'
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
+
+const router = express.Router();
+const prisma = new PrismaClient();
+
+// Login endpoint
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password required' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      return res.status(500).json({ error: 'JWT secret not configured' });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      secret,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Register endpoint
+router.post('/register', async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+
+    if (!email || !password || !name) {
+      return res.status(400).json({ error: 'Email, password, and name required' });
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+        role: 'USER'
+      }
+    });
+
+    res.status(201).json({
+      message: 'User created successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+export default router;
+AUTHROUTESEOF
+
+# Create streams routes
+cat > backend/src/routes/streams.ts << 'STREAMROUTESEOF'
+import express from 'express';
+
+const router = express.Router();
+
+// Get all streams
+router.get('/', async (req, res) => {
+  res.json({ streams: [] });
+});
+
+// Get stream by slug
+router.get('/:slug', async (req, res) => {
+  const { slug } = req.params;
+  res.json({
+    slug,
+    message: 'Stream endpoint working',
+    isLive: false
+  });
+});
+
+export default router;
+STREAMROUTESEOF
+
+# Create webhooks routes
+cat > backend/src/routes/webhooks.ts << 'WEBHOOKROUTESEOF'
+import express from 'express';
+
+const router = express.Router();
+
+// RTMP webhook for stream start
+router.post('/start', async (req, res) => {
+  console.log('Stream started:', req.body);
+  res.json({ status: 'ok' });
+});
+
+// RTMP webhook for stream stop
+router.post('/stop', async (req, res) => {
+  console.log('Stream stopped:', req.body);
+  res.json({ status: 'ok' });
+});
+
+export default router;
+WEBHOOKROUTESEOF
+
+# Create main backend index file
+cat > backend/src/index.ts << 'BACKENDINDEXEOF'
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import dotenv from 'dotenv';
+import { PrismaClient } from '@prisma/client';
+import authRoutes from './routes/auth';
+import streamRoutes from './routes/streams';
+import webhookRoutes from './routes/webhooks';
+import adminRoutes from './routes/admin';
+
+// Load environment variables
+dotenv.config();
+
+const app = express();
+const prisma = new PrismaClient();
+const PORT = process.env.PORT || 3001;
+
+// Middleware
+app.use(helmet());
+app.use(morgan('combined'));
+app.use(cors({
+  origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
+  credentials: true
+}));
+app.use(express.json());
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/streams', streamRoutes);
+app.use('/api/webhooks', webhookRoutes);
+app.use('/api/admin', adminRoutes);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    service: 'custom-restreamer-backend'
+  });
+});
+
+// Basic API endpoint
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'Backend API is working!' });
+});
+
+// Start server
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(\`🚀 Backend server running on port \${PORT}\`);
+  console.log(\`📊 Health check: http://localhost:\${PORT}/health\`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  await prisma.\$disconnect();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, shutting down gracefully');
+  await prisma.\$disconnect();
+  process.exit(0);
+});
+BACKENDINDEXEOF
+
+# Create Prisma schema
+cat > backend/prisma/schema.prisma << 'PRISMASCHEMAEOF'
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("USER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  streams Stream[]
+
+  @@map("users")
+}
+
+model Stream {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  slug        String   @unique
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id])
+  streamStatus StreamStatus?
+  brandedUrl  BrandedUrl?
+
+  @@map("streams")
+}
+
+model StreamConfiguration {
+  id        String   @id @default(cuid())
+  streamId  String   @unique
+  rtmpUrl   String?
+  hlsUrl    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stream Stream @relation(fields: [streamId], references: [id])
+
+  @@map("stream_configurations")
+}
+
+model BrandedUrl {
+  id        String   @id @default(cuid())
+  streamId  String   @unique
+  customUrl String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stream Stream @relation(fields: [streamId], references: [id])
+
+  @@map("branded_urls")
+}
+
+model StreamStatus {
+  id        String   @id @default(cuid())
+  streamId  String   @unique
+  isLive    Boolean  @default(false)
+  viewers   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stream Stream @relation(fields: [streamId], references: [id])
+
+  @@map("stream_status")
+}
+
+model Viewer {
+  id        String   @id @default(cuid())
+  streamId  String
+  sessionId String
+  joinedAt  DateTime @default(now())
+  leftAt    DateTime?
+
+  @@map("viewers")
+}
+PRISMASCHEMAEOF
+
+# Create package.json for backend
+cat > backend/package.json << 'BACKENDPACKAGEEOF'
+{
+  "name": "custom-restreamer-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Custom Restreamer",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "create-admin": "tsx src/scripts/create-admin.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.4.5",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "ws": "^8.18.0",
+    "@prisma/client": "^5.7.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/morgan": "^1.9.9",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/ws": "^8.5.10",
+    "@types/node": "^20.10.5",
+    "typescript": "^5.3.3",
+    "tsx": "^4.6.2",
+    "prisma": "^5.7.1"
+  }
+}
+BACKENDPACKAGEEOF
+
+# Create TypeScript config for backend
+cat > backend/tsconfig.json << 'BACKENDTSCONFIGEOF'
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+BACKENDTSCONFIGEOF
+
+# Create create-admin script
+cat > backend/src/scripts/create-admin.js << 'CREATEADMINEOF'
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
+
+const prisma = new PrismaClient();
+
+async function createAdmin() {
+  try {
+    const email = process.env.ADMIN_EMAIL || 'admin@example.com';
+    const password = process.env.ADMIN_PASSWORD || 'admin123';
+    const name = 'Admin User';
+
+    // Check if admin already exists
+    const existingAdmin = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (existingAdmin) {
+      console.log('✅ Admin user already exists:', email);
+      return;
+    }
+
+    // Create admin user
+    const hashedPassword = await bcrypt.hash(password, 12);
+    
+    const admin = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+        role: 'ADMIN'
+      }
+    });
+
+    console.log('✅ Admin user created successfully:');
+    console.log('   Email:', admin.email);
+    console.log('   Name:', admin.name);
+    console.log('   Role:', admin.role);
+  } catch (error) {
+    console.error('❌ Error creating admin user:', error);
+    process.exit(1);
+  } finally {
+    await prisma.\$disconnect();
+  }
+}
+
+createAdmin();
+CREATEADMINEOF
 
 # Create complete Docker Compose
 echo "🐳 Setting up Docker Compose..."

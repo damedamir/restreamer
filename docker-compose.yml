@@ -22,7 +22,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.simple
+      dockerfile: Dockerfile.working
     environment:
       DATABASE_URL: postgresql://postgres:password@postgres:5432/custom_restreamer
       PORT: 3001
@@ -55,25 +55,19 @@ services:
 
   # Nginx (RTMP + HLS + Reverse Proxy)
   nginx:
-    image: nginx:alpine
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
     ports:
       - "80:80"
       - "443:443"
       - "1935:1935"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/rtmp.conf:/etc/nginx/rtmp.conf
-      - ./nginx/sites:/etc/nginx/sites-available
       - hls_data:/var/www/hls
       - frontend_build:/var/www/frontend
     depends_on:
       - frontend
       - backend
-    command: >
-      sh -c "
-        nginx -t &&
-        nginx -g 'daemon off;'
-      "
 
 volumes:
   postgres_data:

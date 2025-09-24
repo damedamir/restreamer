@@ -1,296 +1,195 @@
 # Custom Restreamer - Deployment Guide
 
-## 🌐 Deploy to Any Domain
+## 🚀 Quick Deployment
 
-### **Quick Deployment (Any Domain)**
+### Prerequisites
+- Docker and Docker Compose installed
+- Git installed
+- Server with ports 80 and 443 open
 
+### 1. Clone the Repository
 ```bash
-# 1. Clone and setup
 git clone https://github.com/damedamir/custom-restreamer.git
 cd custom-restreamer
-./scripts/setup.sh
-
-# 2. Configure for your domain
-./scripts/configure-domain.sh yourdomain.com
-
-# 3. Get SSL certificate
-sudo apt install certbot
-sudo certbot certonly --standalone -d yourdomain.com
-
-# 4. Restart with SSL
-docker-compose down && docker-compose up -d
 ```
 
-**That's it!** Your app is now running on `https://yourdomain.com`
+### 2. Update Configuration for Your Domain
+Edit `docker-compose.yml` and update these environment variables:
 
-## 🚀 Deployment Options
+```yaml
+# Backend environment
+CORS_ORIGIN: "https://yourdomain.com"
+PUBLIC_HLS_URL: "https://yourdomain.com/hls"
 
-### **Option 1: Local Development**
-```bash
-./scripts/setup.sh
-# Access: http://localhost:3000
+# Frontend environment  
+NEXT_PUBLIC_API_URL: "https://yourdomain.com/api"
+NEXT_PUBLIC_WS_URL: "wss://yourdomain.com/ws"
 ```
 
-### **Option 2: Production Domain**
+### 3. Deploy
 ```bash
-./scripts/setup.sh
-./scripts/configure-domain.sh yourdomain.com
-# Access: https://yourdomain.com
-```
-
-### **Option 3: Subdomain**
-```bash
-./scripts/setup.sh
-./scripts/configure-domain.sh stream.yourdomain.com
-# Access: https://stream.yourdomain.com
-```
-
-## 🔧 Domain Configuration
-
-### **What the configure-domain.sh script does:**
-
-1. **Updates Environment Variables:**
-   ```env
-   CORS_ORIGIN="https://yourdomain.com"
-   PUBLIC_HLS_URL="https://yourdomain.com/hls"
-   ```
-
-2. **Creates Nginx Configuration:**
-   - HTTPS redirect
-   - SSL configuration
-   - Security headers
-   - CORS settings
-
-3. **Updates Docker Compose:**
-   - Production environment variables
-   - SSL certificate paths
-
-## 📋 Pre-Deployment Checklist
-
-### **Server Requirements:**
-- [ ] Ubuntu 20.04+ or similar Linux
-- [ ] Docker and Docker Compose installed
-- [ ] Domain DNS pointing to server IP
-- [ ] Ports 80, 443, 1935 open
-- [ ] SSL certificate (Let's Encrypt)
-
-### **Domain Setup:**
-- [ ] DNS A record: `yourdomain.com → YOUR_SERVER_IP`
-- [ ] DNS A record: `*.yourdomain.com → YOUR_SERVER_IP` (for subdomains)
-- [ ] SSL certificate installed
-
-## 🛠️ Step-by-Step Deployment
-
-### **1. Server Setup**
-```bash
-# Update system
-sudo apt update && sudo apt upgrade -y
-
-# Install Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-sudo usermod -aG docker $USER
-
-# Install Docker Compose
-sudo apt install docker-compose-plugin
-
-# Logout and login to apply group changes
-```
-
-### **2. Application Deployment**
-```bash
-# Clone repository
-git clone https://github.com/damedamir/custom-restreamer.git
-cd custom-restreamer
-
-# Run automated setup
-./scripts/setup.sh
-
-# Configure for your domain
-./scripts/configure-domain.sh yourdomain.com
-```
-
-### **3. SSL Certificate**
-```bash
-# Install Certbot
-sudo apt install certbot
-
-# Get SSL certificate
-sudo certbot certonly --standalone -d yourdomain.com
-
-# Verify certificate
-sudo certbot certificates
-```
-
-### **4. Start Production**
-```bash
-# Restart with SSL
-docker-compose down
-docker-compose up -d
+# Start all services
+docker-compose up -d --build
 
 # Check status
-docker-compose ps
-```
+docker ps
 
-## 🔒 Security Configuration
-
-### **Firewall Setup**
-```bash
-# Install UFW
-sudo apt install ufw
-
-# Configure firewall
-sudo ufw allow ssh
-sudo ufw allow 80
-sudo ufw allow 443
-sudo ufw allow 1935
-sudo ufw enable
-```
-
-### **SSL Security**
-```bash
-# Test SSL configuration
-curl -I https://yourdomain.com
-
-# Check SSL rating
-# Visit: https://www.ssllabs.com/ssltest/
-```
-
-## 📊 Monitoring & Maintenance
-
-### **Health Checks**
-```bash
-# Check all services
-docker-compose ps
-
-# Check logs
+# View logs if needed
 docker-compose logs -f
-
-# Check SSL certificate
-sudo certbot certificates
 ```
 
-### **Backup**
+### 4. Open Firewall Ports
 ```bash
-# Backup database
-docker-compose exec postgres pg_dump -U postgres custom_restreamer > backup.sql
+# For HTTP (required)
+sudo ufw allow 80
 
-# Backup configuration
-tar -czf config-backup.tar.gz .env nginx/ docker-compose.yml
+# For HTTPS (optional but recommended)
+sudo ufw allow 443
+
+# Reload firewall
+sudo ufw reload
 ```
 
-### **Updates**
-```bash
-# Pull latest changes
-git pull origin main
+## 🔧 Production Configuration
 
-# Rebuild and restart
+### Environment Variables
+Create a `.env` file with your production values:
+
+```env
+# Database
+DATABASE_URL="postgresql://postgres:your_secure_password@postgres:5432/custom_restreamer"
+
+# Security
+JWT_SECRET="your-super-secure-jwt-secret"
+WEBHOOK_SECRET="your-webhook-secret"
+
+# Domain
+CORS_ORIGIN="https://yourdomain.com"
+PUBLIC_HLS_URL="https://yourdomain.com/hls"
+
+# Admin
+ADMIN_EMAIL="admin@yourdomain.com"
+ADMIN_PASSWORD="your-secure-admin-password"
+```
+
+### SSL Certificates (Optional)
+To enable HTTPS:
+
+1. Install Certbot:
+```bash
+sudo apt install certbot
+```
+
+2. Get SSL certificate:
+```bash
+sudo certbot certonly --standalone -d yourdomain.com
+```
+
+3. Update nginx configuration to use HTTPS:
+```bash
+# Switch to HTTPS configuration
 docker-compose down
+# Edit docker-compose.yml to use Dockerfile.https instead of Dockerfile.simple
 docker-compose up -d --build
 ```
 
-## 🌍 Multi-Domain Setup
+## 📊 Service Status
 
-### **Multiple Domains on Same Server**
+### Health Checks
+- **Frontend**: `http://yourdomain.com/`
+- **Backend API**: `http://yourdomain.com/api/test`
+- **Health Check**: `http://yourdomain.com/health`
+
+### Container Management
 ```bash
-# Configure first domain
-./scripts/configure-domain.sh domain1.com
+# View running containers
+docker ps
 
-# Configure second domain
-./scripts/configure-domain.sh domain2.com
+# View logs
+docker-compose logs -f [service-name]
 
-# Update Nginx to handle both domains
-# Edit nginx/sites/production.conf
+# Restart services
+docker-compose restart
+
+# Stop all services
+docker-compose down
+
+# Update and restart
+docker-compose pull && docker-compose up -d --build
 ```
 
-### **Load Balancer Setup**
+## 🗄️ Database Management
+
+### Access Database
 ```bash
-# For high traffic, use load balancer
-# Configure Nginx as load balancer
-# Scale backend services
-docker-compose up -d --scale backend=3
+# Connect to PostgreSQL
+docker exec -it custom-restreamer-postgres-1 psql -U postgres -d custom_restreamer
+
+# Run Prisma migrations
+docker exec custom-restreamer-backend-1 npx prisma db push
+
+# Reset database (WARNING: deletes all data)
+docker exec custom-restreamer-backend-1 npx prisma db push --accept-data-loss
 ```
 
-## 🐛 Troubleshooting
+## 🔍 Troubleshooting
 
-### **Common Issues**
+### Common Issues
 
-**1. SSL Certificate Issues**
+1. **Port already in use**:
+   ```bash
+   # Find process using port
+   lsof -i :80
+   # Kill process
+   kill [PID]
+   ```
+
+2. **Container won't start**:
+   ```bash
+   # Check logs
+   docker logs [container-name]
+   # Rebuild container
+   docker-compose build [service-name]
+   ```
+
+3. **Database connection issues**:
+   ```bash
+   # Check if PostgreSQL is healthy
+   docker ps | grep postgres
+   # Restart database
+   docker-compose restart postgres
+   ```
+
+### Logs
 ```bash
-# Check certificate
-sudo certbot certificates
+# All services
+docker-compose logs -f
 
-# Renew certificate
-sudo certbot renew
-
-# Test renewal
-sudo certbot renew --dry-run
+# Specific service
+docker-compose logs -f backend
+docker-compose logs -f frontend
+docker-compose logs -f nginx
 ```
 
-**2. DNS Issues**
-```bash
-# Check DNS resolution
-nslookup yourdomain.com
-dig yourdomain.com
-
-# Check if domain points to server
-curl -I http://yourdomain.com
+## 📁 Project Structure
+```
+custom-restreamer/
+├── backend/           # Node.js/Express API
+├── frontend/          # Next.js React app
+├── nginx/            # Nginx configuration
+├── docker-compose.yml # Docker services
+└── DEPLOYMENT.md     # This file
 ```
 
-**3. Port Conflicts**
-```bash
-# Check if ports are in use
-sudo netstat -tulpn | grep :80
-sudo netstat -tulpn | grep :443
-sudo netstat -tulpn | grep :1935
+## 🌐 Features
+- ✅ RTMP streaming ingestion
+- ✅ HLS video delivery
+- ✅ Real-time analytics
+- ✅ Admin panel
+- ✅ User authentication
+- ✅ Custom branded URLs
+- ✅ WebSocket support
+- ✅ Database persistence
 
-# Stop conflicting services
-sudo systemctl stop nginx
-sudo systemctl stop apache2
-```
-
-**4. Docker Issues**
-```bash
-# Check Docker status
-docker --version
-docker-compose --version
-
-# Check service logs
-docker-compose logs backend
-docker-compose logs frontend
-docker-compose logs nginx
-```
-
-## 📈 Performance Optimization
-
-### **Server Optimization**
-```bash
-# Increase file limits
-echo "* soft nofile 65536" >> /etc/security/limits.conf
-echo "* hard nofile 65536" >> /etc/security/limits.conf
-
-# Optimize kernel parameters
-echo "net.core.somaxconn = 65536" >> /etc/sysctl.conf
-echo "net.ipv4.tcp_max_syn_backlog = 65536" >> /etc/sysctl.conf
-sysctl -p
-```
-
-### **Nginx Optimization**
-```nginx
-# In nginx.conf
-worker_processes auto;
-worker_connections 1024;
-keepalive_timeout 65;
-gzip on;
-gzip_comp_level 6;
-```
-
-## 🆘 Support
-
-- **Documentation**: [README.md](./README.md)
-- **Installation**: [INSTALL.md](./INSTALL.md)
-- **Issues**: GitHub Issues
-
----
-
-**Happy Streaming! 🎥**
+## 📞 Support
+For issues or questions, please check the logs first and create an issue on GitHub.

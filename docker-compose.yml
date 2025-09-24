@@ -27,10 +27,10 @@ services:
       DATABASE_URL: postgresql://postgres:password@postgres:5432/custom_restreamer
       PORT: 3001
       NODE_ENV: production
-      CORS_ORIGIN: http://localhost:3000,https://yourdomain.com
+      CORS_ORIGIN: https://hive.restreamer.website
       WEBHOOK_SECRET: your-secret-key
       JWT_SECRET: your-jwt-secret
-      PUBLIC_HLS_URL: https://yourdomain.com/hls
+      PUBLIC_HLS_URL: https://hive.restreamer.website/hls
     ports:
       - "3001:3001"
     depends_on:
@@ -43,20 +43,23 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.simple
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001
-      NEXT_PUBLIC_WS_URL: ws://localhost:3001
+      NEXT_PUBLIC_API_URL: https://hive.restreamer.website/api
+      NEXT_PUBLIC_WS_URL: wss://hive.restreamer.website/ws
     ports:
       - "3000:3000"
     depends_on:
       - backend
 
-  # Nginx (HTTP reverse proxy)
+  # Nginx (HTTPS reverse proxy)
   nginx:
     build:
       context: ./nginx
-      dockerfile: Dockerfile.simple
+      dockerfile: Dockerfile.https
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - frontend
       - backend

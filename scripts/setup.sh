@@ -29,6 +29,9 @@ fi
 if ! groups $USER | grep -q docker; then
     echo "❌ User is not in docker group. Please run: ./scripts/install-dependencies.sh"
     echo "💡 After running the install script, logout and login again."
+    echo ""
+    echo "Or run with sudo for now:"
+    echo "   sudo ./scripts/setup-sudo.sh"
     exit 1
 fi
 
@@ -50,18 +53,6 @@ if [ ! -f .env ]; then
     echo "✅ .env file created with secure random secrets"
 else
     echo "✅ .env file already exists"
-fi
-
-# Check if Docker is running
-if ! docker info > /dev/null 2>&1; then
-    echo "❌ Docker is not running. Please start Docker and try again."
-    exit 1
-fi
-
-# Check if Docker Compose is available
-if ! command -v docker-compose &> /dev/null; then
-    echo "❌ Docker Compose is not installed. Please run: ./scripts/install-dependencies.sh"
-    exit 1
 fi
 
 echo "🐳 Starting services with Docker Compose..."

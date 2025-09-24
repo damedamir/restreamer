@@ -115,6 +115,11 @@ sudo mkdir -p /var/www/hls
 sudo chown -R $USER:$USER /var/www/hls
 sudo chmod -R 755 /var/www/hls
 
+# Start Docker service
+echo "🚀 Starting Docker service..."
+sudo systemctl start docker
+sudo systemctl enable docker
+
 # Verify installations
 echo "🔍 Verifying installations..."
 echo "Docker version: $(docker --version 2>/dev/null || echo 'Not installed')"
@@ -128,10 +133,7 @@ echo "🎉 Dependencies installation complete!"
 echo ""
 echo "📋 Next steps:"
 echo "1. Logout and login again to apply Docker group changes"
-echo "2. Clone the Custom Restreamer repository:"
-echo "   git clone https://github.com/damedamir/custom-restreamer.git"
-echo "   cd custom-restreamer"
-echo "3. Run the setup script:"
+echo "2. Run the setup script:"
 echo "   ./scripts/setup.sh"
 echo ""
 echo "⚠️  Important: You need to logout and login again for Docker group changes to take effect!"

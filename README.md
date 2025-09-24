@@ -31,7 +31,7 @@ cd custom-restreamer
 # 2. Install dependencies (Docker, Certbot, Nginx, etc.)
 ./scripts/install-dependencies.sh
 
-# 3. Logout and login again (for Docker group changes)
+# 3. Logout and login again (for Docker group)
 logout
 # (login again)
 
@@ -39,11 +39,15 @@ logout
 ./scripts/setup.sh
 ```
 
+### **Step-by-Step Manual Installation**
+
+For detailed step-by-step instructions, see [MANUAL_INSTALL.md](./MANUAL_INSTALL.md)
+
 ### **Production Deployment**
 
 ```bash
 # Configure for your domain
-./scripts/configure-domain.sh yourdomain.com
+./deploy.sh yourdomain.com
 
 # Get SSL certificate
 sudo certbot certonly --standalone -d yourdomain.com
@@ -138,8 +142,8 @@ docker-compose restart
 # Update and restart
 docker-compose up -d --build
 
-# View service status
-docker-compose ps
+# Test builds
+./scripts/test-build.sh
 ```
 
 ## Configuration
@@ -174,8 +178,8 @@ JWT_SECRET="your-jwt-secret"
 
 ## Documentation
 
-- **[Installation Guide](./INSTALL.md)** - Complete installation instructions
-- **[Quick Start](./QUICKSTART.md)** - 5-minute setup guide
+- **[Manual Installation](./MANUAL_INSTALL.md)** - Complete step-by-step installation
+- **[Troubleshooting](./TROUBLESHOOTING.md)** - Common issues and solutions
 - **[Deployment Guide](./DEPLOYMENT.md)** - Production deployment
 - **[Local Testing](./LOCAL_TEST.md)** - Development setup
 
@@ -205,6 +209,16 @@ sudo certbot renew
 ```bash
 docker-compose exec postgres pg_isready -U postgres
 docker-compose down -v && docker-compose up -d
+```
+
+**5. Build issues:**
+```bash
+# Test individual builds
+./scripts/test-build.sh
+
+# Rebuild everything
+docker-compose down
+docker-compose up -d --build
 ```
 
 ## Support

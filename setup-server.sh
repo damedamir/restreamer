@@ -332,8 +332,16 @@ deploy_application() {
     
     print_status "Using Docker Compose command: $COMPOSE_CMD"
     
+    # Check if user can access Docker, if not use sudo
+    if ! docker ps &> /dev/null; then
+        print_status "Using sudo for Docker commands (user not in docker group yet)..."
+        SUDO_CMD="sudo"
+    else
+        SUDO_CMD=""
+    fi
+    
     # Start services
-    $COMPOSE_CMD -f docker-compose.prod.yml up -d --build
+    $SUDO_CMD $COMPOSE_CMD -f docker-compose.prod.yml up -d --build
     
     # Wait for services to be ready
     print_status "Waiting for services to start..."
@@ -341,11 +349,11 @@ deploy_application() {
     
     # Initialize database
     print_status "Initializing database..."
-    docker exec custom-restreamer-backend-1 npx prisma db push
+    $SUDO_CMD docker exec custom-restreamer-backend-1 npx prisma db push
     
     # Seed database
     print_status "Seeding database..."
-    docker exec custom-restreamer-backend-1 npm run seed
+    $SUDO_CMD docker exec custom-restreamer-backend-1 npm run seed
     
     print_success "Application deployed successfully"
 }
@@ -387,8 +395,15 @@ run_health_checks() {
         COMPOSE_CMD="docker compose"
     fi
     
+    # Check if user can access Docker, if not use sudo
+    if ! docker ps &> /dev/null; then
+        SUDO_CMD="sudo"
+    else
+        SUDO_CMD=""
+    fi
+    
     # Check if services are running
-    if $COMPOSE_CMD -f docker-compose.prod.yml ps | grep -q "Up"; then
+    if $SUDO_CMD $COMPOSE_CMD -f docker-compose.prod.yml ps | grep -q "Up"; then
         print_success "All services are running"
     else
         print_error "Some services failed to start"

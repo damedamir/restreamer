@@ -99,8 +99,7 @@ Thumbs.db
 # HLS files
 hls/
 *.m3u8
-# Only ignore .ts files in hls directory, not TypeScript source files
-hls/*.ts
+*.ts
 
 # Prisma
 prisma/migrations/

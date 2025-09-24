@@ -50,16 +50,13 @@ services:
     depends_on:
       - backend
 
-  # Nginx (HTTPS reverse proxy)
+  # Nginx (HTTP reverse proxy for testing)
   nginx:
     build:
       context: ./nginx
-      dockerfile: Dockerfile.https
+      dockerfile: Dockerfile.simple
     ports:
       - "80:80"
-      - "443:443"
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - frontend
       - backend

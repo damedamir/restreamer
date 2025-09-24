@@ -155,7 +155,8 @@ export default function HomePage() {
           </p>
           <p className="text-gray-400 text-xs mt-2">
             Last updated: {new Date().toLocaleString()} | 
-            <a href="/test" className="text-blue-500 hover:text-blue-700 ml-2">Test Page</a>
+            <a href="/test" className="text-blue-500 hover:text-blue-700 ml-2">Test Page</a> |
+            <span className="text-green-500 ml-2">✅ NEW DESIGN ACTIVE</span>
           </p>
         </div>
       </div>

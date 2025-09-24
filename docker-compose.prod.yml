@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15
@@ -29,7 +27,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.simple
+      dockerfile: Dockerfile
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://hive.restreamer.website}
     ports:
@@ -52,7 +50,7 @@ services:
   nginx:
     build:
       context: ./nginx
-      dockerfile: Dockerfile.simple
+      dockerfile: Dockerfile
     ports:
       - "80:80"
       - "443:443"

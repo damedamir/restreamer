@@ -341,19 +341,63 @@ deploy_application() {
     fi
     
     # Start services
-    $SUDO_CMD $COMPOSE_CMD -f docker-compose.prod.yml up -d --build
+    print_status "Starting Docker services..."
+    if [ -n "$SUDO_CMD" ]; then
+        sudo $COMPOSE_CMD -f docker-compose.prod.yml up -d --build
+    else
+        $COMPOSE_CMD -f docker-compose.prod.yml up -d --build
+    fi
     
     # Wait for services to be ready
     print_status "Waiting for services to start..."
     sleep 30
     
+    # Wait for backend container to be ready
+    print_status "Waiting for backend container to be ready..."
+    for i in {1..30}; do
+        if [ -n "$SUDO_CMD" ]; then
+            if sudo docker ps | grep -q backend; then
+                break
+            fi
+        else
+            if docker ps | grep -q backend; then
+                break
+            fi
+        fi
+        print_status "Waiting for backend container... ($i/30)"
+        sleep 2
+    done
+    
+    # Get the actual backend container name
+    print_status "Finding backend container..."
+    if [ -n "$SUDO_CMD" ]; then
+        BACKEND_CONTAINER=$(sudo docker ps --format "table {{.Names}}" | grep backend | head -1)
+    else
+        BACKEND_CONTAINER=$(docker ps --format "table {{.Names}}" | grep backend | head -1)
+    fi
+    
+    if [ -z "$BACKEND_CONTAINER" ]; then
+        print_error "Backend container not found!"
+        return 1
+    fi
+    
+    print_status "Found backend container: $BACKEND_CONTAINER"
+    
     # Initialize database
     print_status "Initializing database..."
-    $SUDO_CMD docker exec custom-restreamer-backend-1 npx prisma db push
+    if [ -n "$SUDO_CMD" ]; then
+        sudo docker exec $BACKEND_CONTAINER npx prisma db push
+    else
+        docker exec $BACKEND_CONTAINER npx prisma db push
+    fi
     
     # Seed database
     print_status "Seeding database..."
-    $SUDO_CMD docker exec custom-restreamer-backend-1 npm run seed
+    if [ -n "$SUDO_CMD" ]; then
+        sudo docker exec $BACKEND_CONTAINER npm run seed
+    else
+        docker exec $BACKEND_CONTAINER npm run seed
+    fi
     
     print_success "Application deployed successfully"
 }
@@ -403,11 +447,20 @@ run_health_checks() {
     fi
     
     # Check if services are running
-    if $SUDO_CMD $COMPOSE_CMD -f docker-compose.prod.yml ps | grep -q "Up"; then
-        print_success "All services are running"
+    if [ -n "$SUDO_CMD" ]; then
+        if sudo $COMPOSE_CMD -f docker-compose.prod.yml ps | grep -q "Up"; then
+            print_success "All services are running"
+        else
+            print_error "Some services failed to start"
+            return 1
+        fi
     else
-        print_error "Some services failed to start"
-        return 1
+        if $COMPOSE_CMD -f docker-compose.prod.yml ps | grep -q "Up"; then
+            print_success "All services are running"
+        else
+            print_error "Some services failed to start"
+            return 1
+        fi
     fi
     
     # Test API endpoints

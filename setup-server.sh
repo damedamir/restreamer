@@ -263,12 +263,19 @@ setup_ssl() {
 create_nginx_config() {
     print_status "Creating production Nginx configuration..."
     
+    # Debug: Show current directory and files
+    print_status "Current directory: $(pwd)"
+    print_status "Files in current directory: $(ls -la)"
+    
     # Update nginx config with domain
     if [[ -f "nginx/nginx-production.conf" ]]; then
+        # Create the output file with proper directory structure
+        mkdir -p nginx
         sed "s/hive\.restreamer\.website/$DOMAIN/g" nginx/nginx-production.conf > nginx/nginx-production-domain.conf
         print_success "Nginx configuration updated for domain: $DOMAIN"
     else
         print_warning "nginx/nginx-production.conf not found, using default configuration"
+        print_status "Available nginx files: $(ls -la nginx/ 2>/dev/null || echo 'nginx directory not found')"
     fi
 }
 

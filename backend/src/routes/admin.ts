@@ -8,17 +8,19 @@ const prisma = new PrismaClient();
 router.get('/dashboard', async (req, res) => {
   try {
     // Get actual counts from database
-    const totalStreams = await prisma.stream.count();
+    const totalConfigurations = await prisma.rtmpConfiguration.count();
     const activeStreams = await prisma.streamStatus.count({
       where: { isLive: true }
     });
     const totalUsers = await prisma.user.count();
+    const totalBrandedUrls = await prisma.brandedUrl.count();
 
     res.json({
       stats: {
-        totalStreams,
+        totalConfigurations,
         activeStreams,
-        totalUsers
+        totalUsers,
+        totalBrandedUrls
       }
     });
   } catch (error) {
@@ -27,19 +29,20 @@ router.get('/dashboard', async (req, res) => {
   }
 });
 
-// Get all streams
-router.get('/streams', async (req, res) => {
+// Get all configurations
+router.get('/configurations', async (req, res) => {
   try {
-    const streams = await prisma.stream.findMany({
+    const configurations = await prisma.rtmpConfiguration.findMany({
       include: {
+        rtmpServer: true,
         streamStatus: true,
-        brandedUrl: true
+        brandedUrls: true
       }
     });
-    res.json({ streams });
+    res.json({ configurations });
   } catch (error) {
-    console.error('Get streams error:', error);
-    res.status(500).json({ error: 'Failed to fetch streams' });
+    console.error('Get configurations error:', error);
+    res.status(500).json({ error: 'Failed to fetch configurations' });
   }
 });
 
@@ -62,50 +65,22 @@ router.get('/users', async (req, res) => {
   }
 });
 
-// Create a new stream
-router.post('/streams', async (req, res) => {
+// Get all branded URLs
+router.get('/branded-urls', async (req, res) => {
   try {
-    const { name, description, slug } = req.body;
-    
-    if (!name || !slug) {
-      return res.status(400).json({ error: 'Name and slug are required' });
-    }
-
-    const stream = await prisma.stream.create({
-      data: {
-        name,
-        description: description || '',
-        slug,
-        userId: '1' // Default user for now
+    const brandedUrls = await prisma.brandedUrl.findMany({
+      include: {
+        rtmpConfig: {
+          include: {
+            rtmpServer: true
+          }
+        }
       }
     });
-
-    res.status(201).json({ stream });
+    res.json({ brandedUrls });
   } catch (error) {
-    console.error('Create stream error:', error);
-    res.status(500).json({ error: 'Failed to create stream' });
-  }
-});
-
-// Update stream status
-router.put('/streams/:id/status', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { isLive } = req.body;
-
-    const streamStatus = await prisma.streamStatus.upsert({
-      where: { streamId: id },
-      update: { isLive },
-      create: {
-        streamId: id,
-        isLive: isLive || false
-      }
-    });
-
-    res.json({ streamStatus });
-  } catch (error) {
-    console.error('Update stream status error:', error);
-    res.status(500).json({ error: 'Failed to update stream status' });
+    console.error('Get branded URLs error:', error);
+    res.status(500).json({ error: 'Failed to fetch branded URLs' });
   }
 });
 

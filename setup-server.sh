@@ -52,6 +52,36 @@ check_sudo() {
     fi
 }
 
+# Function to cleanup previous installation
+cleanup_previous() {
+    print_status "Cleaning up previous installation..."
+    
+    # Stop and remove existing containers
+    if command -v docker-compose &> /dev/null; then
+        if [[ -f "docker-compose.prod.yml" ]]; then
+            docker-compose -f docker-compose.prod.yml down -v 2>/dev/null || true
+        fi
+        if [[ -f "docker-compose.srs.yml" ]]; then
+            docker-compose -f docker-compose.srs.yml down -v 2>/dev/null || true
+        fi
+    fi
+    
+    # Remove existing project directory
+    if [[ -d "custom-restreamer" ]]; then
+        print_status "Removing existing project directory..."
+        rm -rf custom-restreamer
+    fi
+    
+    # Stop systemd service if exists
+    if systemctl is-active --quiet custom-restreamer 2>/dev/null; then
+        print_status "Stopping existing service..."
+        sudo systemctl stop custom-restreamer 2>/dev/null || true
+        sudo systemctl disable custom-restreamer 2>/dev/null || true
+    fi
+    
+    print_success "Cleanup completed"
+}
+
 # Function to get user input with default values
 get_input() {
     local prompt="$1"
@@ -418,6 +448,9 @@ main() {
         print_status "Running in non-interactive mode..."
         confirm="y"
     fi
+    
+    # Cleanup previous installation
+    cleanup_previous
     
     # Installation steps
     install_docker

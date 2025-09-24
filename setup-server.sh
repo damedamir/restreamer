@@ -149,8 +149,17 @@ get_domain_config() {
     print_status "Domain Configuration"
     echo "=================================="
     
-    get_input "Enter your domain name" "hive.restreamer.website" "DOMAIN"
-    get_input "Enter your email for SSL certificates" "" "EMAIL"
+    if [[ -t 0 ]]; then
+        # Interactive mode
+        get_input "Enter your domain name" "hive.restreamer.website" "DOMAIN"
+        get_input "Enter your email for SSL certificates" "" "EMAIL"
+    else
+        # Non-interactive mode - use defaults
+        DOMAIN="hive.restreamer.website"
+        EMAIL="admin@hive.restreamer.website"
+        print_status "Using default domain: $DOMAIN"
+        print_status "Using default email: $EMAIL"
+    fi
     
     # Generate secure passwords and secrets
     DB_PASSWORD=$(generate_random_string)
@@ -377,10 +386,17 @@ main() {
     check_sudo
     
     # Get user confirmation
-    read -p "Do you want to continue? (y/N): " confirm
-    if [[ ! $confirm =~ ^[Yy]$ ]]; then
-        print_status "Setup cancelled"
-        exit 0
+    if [[ -t 0 ]]; then
+        # Interactive mode
+        read -p "Do you want to continue? (y/N): " confirm
+        if [[ ! $confirm =~ ^[Yy]$ ]]; then
+            print_status "Setup cancelled"
+            exit 0
+        fi
+    else
+        # Non-interactive mode (piped from curl)
+        print_status "Running in non-interactive mode..."
+        confirm="y"
     fi
     
     # Installation steps

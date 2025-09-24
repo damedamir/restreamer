@@ -153,6 +153,10 @@ export default function HomePage() {
           <p className="text-gray-500 text-sm">
             © 2024 Restreamer Pro. Professional streaming made simple.
           </p>
+          <p className="text-gray-400 text-xs mt-2">
+            Last updated: {new Date().toLocaleString()} | 
+            <a href="/test" className="text-blue-500 hover:text-blue-700 ml-2">Test Page</a>
+          </p>
         </div>
       </div>
     </div>

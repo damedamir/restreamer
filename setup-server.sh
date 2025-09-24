@@ -144,6 +144,23 @@ configure_firewall() {
     print_success "Firewall configured"
 }
 
+# Function to clone repository
+clone_repository() {
+    print_status "Cloning repository..."
+    
+    if [[ -d "custom-restreamer" ]]; then
+        print_status "Repository already exists, updating..."
+        cd custom-restreamer
+        git pull origin main
+    else
+        print_status "Cloning repository..."
+        git clone https://github.com/damedamir/custom-restreamer.git
+        cd custom-restreamer
+    fi
+    
+    print_success "Repository ready"
+}
+
 # Function to get domain configuration
 get_domain_config() {
     print_status "Domain Configuration"
@@ -217,9 +234,12 @@ create_nginx_config() {
     print_status "Creating production Nginx configuration..."
     
     # Update nginx config with domain
-    sed "s/hive\.restreamer\.website/$DOMAIN/g" nginx/nginx-production.conf > nginx/nginx-production-domain.conf
-    
-    print_success "Nginx configuration updated for domain: $DOMAIN"
+    if [[ -f "nginx/nginx-production.conf" ]]; then
+        sed "s/hive\.restreamer\.website/$DOMAIN/g" nginx/nginx-production.conf > nginx/nginx-production-domain.conf
+        print_success "Nginx configuration updated for domain: $DOMAIN"
+    else
+        print_warning "nginx/nginx-production.conf not found, using default configuration"
+    fi
 }
 
 # Function to create systemd service
@@ -403,6 +423,7 @@ main() {
     install_docker
     install_tools
     configure_firewall
+    clone_repository
     get_domain_config
     create_env_file
     setup_ssl

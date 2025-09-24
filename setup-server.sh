@@ -283,6 +283,15 @@ create_nginx_config() {
 create_systemd_service() {
     print_status "Creating systemd service..."
     
+    # Determine the correct docker compose command
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_CMD="/usr/bin/docker-compose"
+    elif docker compose version &> /dev/null; then
+        COMPOSE_CMD="/usr/bin/docker compose"
+    else
+        COMPOSE_CMD="/usr/bin/docker compose"
+    fi
+    
     sudo tee /etc/systemd/system/custom-restreamer.service > /dev/null << EOF
 [Unit]
 Description=Custom Restreamer
@@ -293,8 +302,8 @@ After=docker.service
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=$(pwd)
-ExecStart=/usr/bin/docker-compose -f docker-compose.prod.yml up -d
-ExecStop=/usr/bin/docker-compose -f docker-compose.prod.yml down
+ExecStart=$COMPOSE_CMD -f docker-compose.prod.yml up -d
+ExecStop=$COMPOSE_CMD -f docker-compose.prod.yml down
 TimeoutStartSec=0
 
 [Install]
@@ -311,8 +320,20 @@ EOF
 deploy_application() {
     print_status "Deploying application..."
     
+    # Check if docker-compose is available
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_CMD="docker-compose"
+    elif docker compose version &> /dev/null; then
+        COMPOSE_CMD="docker compose"
+    else
+        print_error "Docker Compose not found. Please install Docker Compose."
+        exit 1
+    fi
+    
+    print_status "Using Docker Compose command: $COMPOSE_CMD"
+    
     # Start services
-    docker-compose -f docker-compose.prod.yml up -d --build
+    $COMPOSE_CMD -f docker-compose.prod.yml up -d --build
     
     # Wait for services to be ready
     print_status "Waiting for services to start..."
@@ -357,8 +378,17 @@ create_admin_user() {
 run_health_checks() {
     print_status "Running health checks..."
     
+    # Determine the correct docker compose command
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_CMD="docker-compose"
+    elif docker compose version &> /dev/null; then
+        COMPOSE_CMD="docker compose"
+    else
+        COMPOSE_CMD="docker compose"
+    fi
+    
     # Check if services are running
-    if docker-compose -f docker-compose.prod.yml ps | grep -q "Up"; then
+    if $COMPOSE_CMD -f docker-compose.prod.yml ps | grep -q "Up"; then
         print_success "All services are running"
     else
         print_error "Some services failed to start"

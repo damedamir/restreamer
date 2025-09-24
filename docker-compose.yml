@@ -36,9 +36,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
-      - /var/run/docker.sock:/var/run/docker.sock
 
   # Frontend
   frontend:
@@ -53,23 +50,17 @@ services:
     depends_on:
       - backend
 
-  # Nginx (RTMP + HLS + Reverse Proxy)
+  # Nginx (Simple reverse proxy - no RTMP for now)
   nginx:
     build:
       context: ./nginx
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.simple
     ports:
       - "80:80"
       - "443:443"
-      - "1935:1935"
-    volumes:
-      - hls_data:/var/www/hls
-      - frontend_build:/var/www/frontend
     depends_on:
       - frontend
       - backend
 
 volumes:
   postgres_data:
-  hls_data:
-  frontend_build:

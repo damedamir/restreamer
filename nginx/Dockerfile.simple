@@ -1,0 +1,11 @@
+FROM nginx:alpine
+
+# Copy simple nginx configuration
+COPY nginx-simple.conf /etc/nginx/nginx.conf
+
+# Create HLS directory
+RUN mkdir -p /var/www/hls
+
+EXPOSE 80 443
+
+CMD ["nginx", "-g", "daemon off;"]

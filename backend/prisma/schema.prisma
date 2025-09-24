@@ -17,6 +17,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   streams Stream[]
+  rtmpConfigurations RtmpConfiguration[]
 
   @@map("users")
 }
@@ -32,7 +33,6 @@ model Stream {
 
   user               User                @relation(fields: [userId], references: [id])
   streamStatus       StreamStatus?
-  brandedUrl         BrandedUrl?
   streamConfiguration StreamConfiguration?
 
   @@map("streams")
@@ -51,14 +51,33 @@ model StreamConfiguration {
   @@map("stream_configurations")
 }
 
+model RtmpConfiguration {
+  id          String   @id @default(cuid())
+  name        String
+  rtmpKey     String   @unique
+  rtmpServer  String
+  status      String   @default("Inactive") // Active, Inactive
+  selected    Boolean  @default(false)
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id])
+  brandedUrls BrandedUrl[]
+
+  @@map("rtmp_configurations")
+}
+
 model BrandedUrl {
   id        String   @id @default(cuid())
-  streamId  String   @unique
-  customUrl String   @unique
+  name      String
+  url       String   @unique
+  views     Int      @default(0)
+  rtmpConfigId String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  stream Stream @relation(fields: [streamId], references: [id])
+  rtmpConfig RtmpConfiguration @relation(fields: [rtmpConfigId], references: [id])
 
   @@map("branded_urls")
 }

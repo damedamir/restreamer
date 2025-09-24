@@ -3,62 +3,75 @@
 import { useState, useEffect } from 'react';
 
 interface Config {
-  id: number;
+  id: string;
   name: string;
   status: 'Active' | 'Inactive';
   selected: boolean;
-  created: string;
+  createdAt: string;
   rtmpKey: string;
   rtmpServer: string;
-  zoomId: string;
-  brandedUrls: number;
+  brandedUrls: BrandedUrl[];
 }
 
 interface BrandedUrl {
-  id: number;
+  id: string;
   name: string;
   url: string;
-  configId: number;
+  rtmpConfigId: string;
   views: number;
-  created: string;
+  createdAt: string;
 }
 
 export default function AdminPage() {
   const [user, setUser] = useState({ email: 'damir.fatic@hotmail.com', name: 'Dame Company' });
-  const [configs, setConfigs] = useState<Config[]>([
-    {
-      id: 1,
-      name: 'My stream',
-      status: 'Active',
-      selected: true,
-      created: '9/22/2025',
-      rtmpKey: 'zmr_934fe5$48-CE9',
-      rtmpServer: 'rtmp://173.212.253.79:1935/live',
-      zoomId: '84680945036',
-      brandedUrls: 2
-    }
-  ]);
-  const [brandedUrls, setBrandedUrls] = useState<BrandedUrl[]>([
-    {
-      id: 1,
-      name: 'Company Live Stream',
-      url: 'https://hive.restreamer.website/live/company-event',
-      configId: 1,
-      views: 150,
-      created: '9/22/2025'
-    },
-    {
-      id: 2,
-      name: 'Product Launch',
-      url: 'https://hive.restreamer.website/live/product-launch',
-      configId: 1,
-      views: 89,
-      created: '9/23/2025'
-    }
-  ]);
+  const [configs, setConfigs] = useState<Config[]>([]);
+  const [brandedUrls, setBrandedUrls] = useState<BrandedUrl[]>([]);
   const [activeTab, setActiveTab] = useState('Configs');
   const [showCreateConfig, setShowCreateConfig] = useState(false);
   const [newConfigName, setNewConfigName] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Load data on component mount
+  useEffect(() => {
+    loadConfigurations();
+    loadBrandedUrls();
+  }, []);
+
+  const loadConfigurations = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/configurations', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setConfigs(data);
+      }
+    } catch (error) {
+      console.error('Error loading configurations:', error);
+    }
+  };
+
+  const loadBrandedUrls = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/branded-urls', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setBrandedUrls(data);
+      }
+    } catch (error) {
+      console.error('Error loading branded URLs:', error);
+    }
+  };
 
   const handleSignOut = () => {
     localStorage.removeItem('token');
@@ -69,79 +82,149 @@ export default function AdminPage() {
     navigator.clipboard.writeText(text);
   };
 
-  const createConfig = () => {
+  const createConfig = async () => {
     if (!newConfigName.trim()) return;
     
-    const newConfig: Config = {
-      id: Date.now(),
-      name: newConfigName,
-      status: 'Inactive',
-      selected: false,
-      created: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }),
-      rtmpKey: `zmr_${Math.random().toString(36).substr(2, 9)}`,
-      rtmpServer: 'rtmp://173.212.253.79:1935/live',
-      zoomId: Math.floor(Math.random() * 90000000000 + 10000000000).toString(),
-      brandedUrls: 0
-    };
-    
-    setConfigs([...configs, newConfig]);
-    setNewConfigName('');
-    setShowCreateConfig(false);
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/configurations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: newConfigName })
+      });
+      
+      if (response.ok) {
+        const newConfig = await response.json();
+        setConfigs([...configs, newConfig]);
+        setNewConfigName('');
+        setShowCreateConfig(false);
+      } else {
+        console.error('Failed to create configuration');
+      }
+    } catch (error) {
+      console.error('Error creating configuration:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const cloneConfig = (config: Config) => {
-    const clonedConfig: Config = {
-      ...config,
-      id: Date.now(),
-      name: `${config.name} (Copy)`,
-      status: 'Inactive',
-      selected: false,
-      created: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }),
-      rtmpKey: `zmr_${Math.random().toString(36).substr(2, 9)}`,
-      brandedUrls: 0
-    };
-    setConfigs([...configs, clonedConfig]);
+  const cloneConfig = async (config: Config) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/configurations/${config.id}/clone`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const clonedConfig = await response.json();
+        setConfigs([...configs, clonedConfig]);
+      } else {
+        console.error('Failed to clone configuration');
+      }
+    } catch (error) {
+      console.error('Error cloning configuration:', error);
+    }
   };
 
-  const deleteConfig = (id: number) => {
-    setConfigs(configs.filter(config => config.id !== id));
-    setBrandedUrls(brandedUrls.filter(url => url.configId !== id));
+  const deleteConfig = async (id: number) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/configurations/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        setConfigs(configs.filter(config => config.id !== id));
+        setBrandedUrls(brandedUrls.filter(url => url.rtmpConfigId !== id));
+      } else {
+        console.error('Failed to delete configuration');
+      }
+    } catch (error) {
+      console.error('Error deleting configuration:', error);
+    }
   };
 
-  const selectConfig = (id: number) => {
-    setConfigs(configs.map(config => ({
-      ...config,
-      selected: config.id === id
-    })));
+  const selectConfig = async (id: number) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/configurations/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ selected: true })
+      });
+      
+      if (response.ok) {
+        loadConfigurations(); // Reload to get updated data
+      } else {
+        console.error('Failed to select configuration');
+      }
+    } catch (error) {
+      console.error('Error selecting configuration:', error);
+    }
   };
 
-  const createBrandedUrl = (configId: number) => {
+  const createBrandedUrl = async (configId: number) => {
     const config = configs.find(c => c.id === configId);
     if (!config) return;
 
-    const newUrl: BrandedUrl = {
-      id: Date.now(),
-      name: `${config.name} - Branded URL`,
-      url: `https://hive.restreamer.website/live/${config.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
-      configId,
-      views: 0,
-      created: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
-    };
-
-    setBrandedUrls([...brandedUrls, newUrl]);
-    setConfigs(configs.map(c => 
-      c.id === configId ? { ...c, brandedUrls: c.brandedUrls + 1 } : c
-    ));
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/branded-urls', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          name: `${config.name} - Branded URL`,
+          rtmpConfigId: configId
+        })
+      });
+      
+      if (response.ok) {
+        const newUrl = await response.json();
+        setBrandedUrls([...brandedUrls, newUrl]);
+        loadConfigurations(); // Reload to get updated branded URL count
+      } else {
+        console.error('Failed to create branded URL');
+      }
+    } catch (error) {
+      console.error('Error creating branded URL:', error);
+    }
   };
 
-  const deleteBrandedUrl = (id: number) => {
-    const url = brandedUrls.find(u => u.id === id);
-    if (url) {
-      setConfigs(configs.map(c => 
-        c.id === url.configId ? { ...c, brandedUrls: c.brandedUrls - 1 } : c
-      ));
+  const deleteBrandedUrl = async (id: number) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/branded-urls/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        setBrandedUrls(brandedUrls.filter(u => u.id !== id));
+        loadConfigurations(); // Reload to get updated branded URL count
+      } else {
+        console.error('Failed to delete branded URL');
+      }
+    } catch (error) {
+      console.error('Error deleting branded URL:', error);
     }
-    setBrandedUrls(brandedUrls.filter(u => u.id !== id));
   };
 
   return (
@@ -295,7 +378,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                   
-                  <p className="text-sm text-gray-400 mb-4">Created: {config.created}</p>
+                  <p className="text-sm text-gray-400 mb-4">Created: {new Date(config.createdAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}</p>
                   
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -335,7 +418,7 @@ export default function AdminPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-400">Branded URLs:</span>
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm text-white">{config.brandedUrls}</span>
+                        <span className="text-sm text-white">{config.brandedUrls.length}</span>
                         <button
                           onClick={() => createBrandedUrl(config.id)}
                           className="px-2 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
@@ -404,7 +487,7 @@ export default function AdminPage() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="text-lg font-medium text-white">{url.name}</h3>
-                      <p className="text-sm text-gray-400">Created: {url.created}</p>
+                      <p className="text-sm text-gray-400">Created: {new Date(url.createdAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}</p>
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-400">{url.views} views</span>

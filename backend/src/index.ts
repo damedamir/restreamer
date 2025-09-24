@@ -8,6 +8,8 @@ import authRoutes from './routes/auth';
 import streamRoutes from './routes/streams';
 import webhookRoutes from './routes/webhooks';
 import adminRoutes from './routes/admin';
+import configurationRoutes from './routes/configurations';
+import brandedUrlRoutes from './routes/branded-urls';
 
 // Load environment variables
 dotenv.config();
@@ -30,6 +32,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/streams', streamRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/configurations', configurationRoutes);
+app.use('/api/branded-urls', brandedUrlRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

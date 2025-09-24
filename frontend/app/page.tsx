@@ -1,11 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function HomePage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [currentTime, setCurrentTime] = useState('');
+
+  useEffect(() => {
+    setCurrentTime(new Date().toLocaleString());
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,7 +159,7 @@ export default function HomePage() {
             © 2024 Restreamer Pro. Professional streaming made simple.
           </p>
           <p className="text-gray-400 text-xs mt-2">
-            Last updated: {new Date().toLocaleString()} | 
+            Last updated: {currentTime || 'Loading...'} | 
             <a href="/test" className="text-blue-500 hover:text-blue-700 ml-2">Test Page</a> |
             <span className="text-green-500 ml-2">✅ NEW DESIGN ACTIVE</span>
           </p>

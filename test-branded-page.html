@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Branded Page Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+    </style>
+</head>
+<body>
+    <h1>Branded Page Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testBrandedPage() {
+            const resultsDiv = document.getElementById('results');
+            
+            // Test 1: Check if the page loads
+            resultsDiv.innerHTML += '<div class="test-result loading">Testing page load...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:3000/live/brokers-playbook');
+                if (response.ok) {
+                    resultsDiv.innerHTML += '<div class="test-result success">✅ Page loads successfully</div>';
+                } else {
+                    resultsDiv.innerHTML += `<div class="test-result error">❌ Page load failed: ${response.status}</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `<div class="test-result error">❌ Page load error: ${error.message}</div>`;
+            }
+            
+            // Test 2: Check API call
+            resultsDiv.innerHTML += '<div class="test-result loading">Testing API call...</div>';
+            
+            try {
+                const apiResponse = await fetch('http://localhost:3001/api/branded-urls/slug/brokers-playbook');
+                if (apiResponse.ok) {
+                    const data = await apiResponse.json();
+                    resultsDiv.innerHTML += `
+                        <div class="test-result success">
+                            ✅ API call successful<br>
+                            <strong>Name:</strong> ${data.name}<br>
+                            <strong>Slug:</strong> ${data.slug}<br>
+                            <strong>Color:</strong> ${data.color}<br>
+                            <strong>Offline Message:</strong> ${data.offlineMessage}<br>
+                            <strong>CTA Text:</strong> ${data.ctaText}
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML += `<div class="test-result error">❌ API call failed: ${apiResponse.status}</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `<div class="test-result error">❌ API call error: ${error.message}</div>`;
+            }
+            
+            // Test 3: Check if the page shows the branded content
+            resultsDiv.innerHTML += '<div class="test-result loading">Testing branded content display...</div>';
+            
+            // Open the page in a new window to see the actual result
+            const newWindow = window.open('http://localhost:3000/live/brokers-playbook', '_blank');
+            if (newWindow) {
+                resultsDiv.innerHTML += '<div class="test-result success">✅ Opened branded page in new window - check if it shows "Broker\'s Playbook" branding</div>';
+            } else {
+                resultsDiv.innerHTML += '<div class="test-result error">❌ Could not open branded page (popup blocked?)</div>';
+            }
+        }
+        
+        testBrandedPage();
+    </script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 import './globals.css'
+import { ToastProvider } from '../contexts/ToastContext'
 
 export const metadata = {
   title: 'Restreamer Pro',
@@ -12,7 +13,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <ToastProvider>
+          {children}
+        </ToastProvider>
+      </body>
     </html>
   )
 }

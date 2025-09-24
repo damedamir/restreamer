@@ -32,7 +32,6 @@ model Stream {
   updatedAt   DateTime @updatedAt
 
   user               User                @relation(fields: [userId], references: [id])
-  streamStatus       StreamStatus?
   streamConfiguration StreamConfiguration?
 
   @@map("streams")
@@ -51,19 +50,35 @@ model StreamConfiguration {
   @@map("stream_configurations")
 }
 
-model RtmpConfiguration {
+model RtmpServer {
   id          String   @id @default(cuid())
-  name        String
-  rtmpKey     String   @unique
-  rtmpServer  String
-  status      String   @default("Inactive") // Active, Inactive
-  selected    Boolean  @default(false)
-  userId      String
+  name        String   @unique
+  description String?
+  rtmpUrl     String
+  isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  configurations RtmpConfiguration[]
+
+  @@map("rtmp_servers")
+}
+
+model RtmpConfiguration {
+  id          String       @id @default(cuid())
+  name        String
+  rtmpKey     String       @unique
+  rtmpServerId String
+  status      String       @default("Inactive") // Active, Inactive
+  selected    Boolean      @default(false)
+  userId      String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
   user       User        @relation(fields: [userId], references: [id])
+  rtmpServer RtmpServer  @relation(fields: [rtmpServerId], references: [id])
   brandedUrls BrandedUrl[]
+  streamStatus StreamStatus?
 
   @@map("rtmp_configurations")
 }
@@ -71,9 +86,17 @@ model RtmpConfiguration {
 model BrandedUrl {
   id        String   @id @default(cuid())
   name      String
+  slug      String   @unique
   url       String   @unique
   views     Int      @default(0)
   rtmpConfigId String
+  color     String?  @default("#3B82F6")
+  logoUrl   String?
+  overlayText String?
+  offlineContent Boolean @default(false)
+  offlineMessage String?
+  ctaText   String?
+  ctaUrl    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -90,7 +113,7 @@ model StreamStatus {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  stream Stream @relation(fields: [streamId], references: [id])
+  rtmpConfiguration RtmpConfiguration @relation(fields: [streamId], references: [id])
 
   @@map("stream_status")
 }

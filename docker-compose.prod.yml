@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: restreamer
+      POSTGRES_USER: restreamer
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-restreamer_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://restreamer:${POSTGRES_PASSWORD:-restreamer_password}@postgres:5432/restreamer
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_here}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://hive.restreamer.website,http://localhost:3000}
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.simple
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://hive.restreamer.website}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  srs:
+    image: ossrs/srs:5
+    ports:
+      - "1935:1935"  # RTMP
+      - "1985:1985"  # HTTP API
+      - "8080:8080"  # HLS/WebRTC
+    volumes:
+      - ./nginx/srs-minimal.conf:/usr/local/srs/conf/srs.conf
+      - srs_hls:/var/www/hls
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile.simple
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx-simple.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+      - backend
+      - srs
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  srs_hls:

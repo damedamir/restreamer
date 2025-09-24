@@ -1,195 +1,202 @@
-# Custom Restreamer - Deployment Guide
+# Production Deployment Guide
 
-## 🚀 Quick Deployment
+## Overview
+This guide covers deploying the Custom Restreamer WebRTC streaming system to production.
 
-### Prerequisites
+## Prerequisites
 - Docker and Docker Compose installed
-- Git installed
-- Server with ports 80 and 443 open
+- Domain name pointing to your server
+- SSL certificate (Let's Encrypt recommended)
 
-### 1. Clone the Repository
+## Quick Start
+
+### 1. Clone and Setup
 ```bash
-git clone https://github.com/damedamir/custom-restreamer.git
+git clone <your-repo-url>
 cd custom-restreamer
 ```
 
-### 2. Update Configuration for Your Domain
-Edit `docker-compose.yml` and update these environment variables:
-
-```yaml
-# Backend environment
-CORS_ORIGIN: "https://yourdomain.com"
-PUBLIC_HLS_URL: "https://yourdomain.com/hls"
-
-# Frontend environment  
-NEXT_PUBLIC_API_URL: "https://yourdomain.com/api"
-NEXT_PUBLIC_WS_URL: "wss://yourdomain.com/ws"
+### 2. Configure Environment
+```bash
+cp env.production.example .env
+# Edit .env with your production values
 ```
 
 ### 3. Deploy
 ```bash
-# Start all services
-docker-compose up -d --build
-
-# Check status
-docker ps
-
-# View logs if needed
-docker-compose logs -f
+chmod +x deploy-production.sh
+./deploy-production.sh
 ```
 
-### 4. Open Firewall Ports
+## Manual Deployment
+
+### 1. Environment Configuration
+Create `.env` file with production values:
 ```bash
-# For HTTP (required)
-sudo ufw allow 80
-
-# For HTTPS (optional but recommended)
-sudo ufw allow 443
-
-# Reload firewall
-sudo ufw reload
+POSTGRES_PASSWORD=your_secure_password
+JWT_SECRET=your_secure_jwt_secret
+CORS_ORIGIN=https://yourdomain.com
+NEXT_PUBLIC_API_URL=https://yourdomain.com
 ```
 
-## 🔧 Production Configuration
-
-### Environment Variables
-Create a `.env` file with your production values:
-
-```env
-# Database
-DATABASE_URL="postgresql://postgres:your_secure_password@postgres:5432/custom_restreamer"
-
-# Security
-JWT_SECRET="your-super-secure-jwt-secret"
-WEBHOOK_SECRET="your-webhook-secret"
-
-# Domain
-CORS_ORIGIN="https://yourdomain.com"
-PUBLIC_HLS_URL="https://yourdomain.com/hls"
-
-# Admin
-ADMIN_EMAIL="admin@yourdomain.com"
-ADMIN_PASSWORD="your-secure-admin-password"
-```
-
-### SSL Certificates (Optional)
-To enable HTTPS:
-
-1. Install Certbot:
+### 2. Deploy Services
 ```bash
-sudo apt install certbot
+docker-compose -f docker-compose.prod.yml up -d --build
 ```
 
-2. Get SSL certificate:
+### 3. Initialize Database
 ```bash
-sudo certbot certonly --standalone -d yourdomain.com
-```
-
-3. Update nginx configuration to use HTTPS:
-```bash
-# Switch to HTTPS configuration
-docker-compose down
-# Edit docker-compose.yml to use Dockerfile.https instead of Dockerfile.simple
-docker-compose up -d --build
-```
-
-## 📊 Service Status
-
-### Health Checks
-- **Frontend**: `http://yourdomain.com/`
-- **Backend API**: `http://yourdomain.com/api/test`
-- **Health Check**: `http://yourdomain.com/health`
-
-### Container Management
-```bash
-# View running containers
-docker ps
-
-# View logs
-docker-compose logs -f [service-name]
-
-# Restart services
-docker-compose restart
-
-# Stop all services
-docker-compose down
-
-# Update and restart
-docker-compose pull && docker-compose up -d --build
-```
-
-## 🗄️ Database Management
-
-### Access Database
-```bash
-# Connect to PostgreSQL
-docker exec -it custom-restreamer-postgres-1 psql -U postgres -d custom_restreamer
-
-# Run Prisma migrations
 docker exec custom-restreamer-backend-1 npx prisma db push
-
-# Reset database (WARNING: deletes all data)
-docker exec custom-restreamer-backend-1 npx prisma db push --accept-data-loss
+docker exec custom-restreamer-backend-1 npm run seed
 ```
 
-## 🔍 Troubleshooting
+## Services
+
+| Service | Port | Description |
+|---------|------|-------------|
+| Frontend | 3000 | Next.js web interface |
+| Backend | 3001 | Node.js API server |
+| SRS | 1935, 1985, 8080 | RTMP/WebRTC streaming server |
+| Nginx | 80, 443 | Reverse proxy and SSL termination |
+| PostgreSQL | 5432 | Database |
+
+## SSL Configuration
+
+### Option 1: Let's Encrypt (Recommended)
+```bash
+# Install certbot
+sudo apt install certbot
+
+# Generate certificate
+sudo certbot certonly --standalone -d yourdomain.com
+
+# Copy certificates
+sudo cp /etc/letsencrypt/live/yourdomain.com/fullchain.pem ./ssl/
+sudo cp /etc/letsencrypt/live/yourdomain.com/privkey.pem ./ssl/
+```
+
+### Option 2: Custom SSL
+Place your SSL certificates in `./ssl/` directory:
+- `fullchain.pem` - Full certificate chain
+- `privkey.pem` - Private key
+
+## Testing
+
+### 1. Health Checks
+```bash
+curl http://yourdomain.com/api/health
+curl http://yourdomain.com
+curl http://yourdomain.com:1985/api/v1/streams/
+```
+
+### 2. Create Admin User
+```bash
+# Access the admin interface
+open http://yourdomain.com
+
+# Login with default credentials:
+# Email: admin@example.com
+# Password: admin123
+```
+
+### 3. Test Streaming
+1. Create a branded URL in the admin interface
+2. Stream to: `rtmp://yourdomain.com:1935/live/YOUR_STREAM_KEY`
+3. View your branded stream page
+
+## Monitoring
+
+### View Logs
+```bash
+# All services
+docker-compose -f docker-compose.prod.yml logs -f
+
+# Specific service
+docker-compose -f docker-compose.prod.yml logs -f backend
+```
+
+### Check Status
+```bash
+docker-compose -f docker-compose.prod.yml ps
+```
+
+## Maintenance
+
+### Update Application
+```bash
+git pull
+docker-compose -f docker-compose.prod.yml up -d --build
+```
+
+### Backup Database
+```bash
+docker exec custom-restreamer-postgres-1 pg_dump -U restreamer restreamer > backup.sql
+```
+
+### Restore Database
+```bash
+docker exec -i custom-restreamer-postgres-1 psql -U restreamer restreamer < backup.sql
+```
+
+## Troubleshooting
 
 ### Common Issues
 
-1. **Port already in use**:
-   ```bash
-   # Find process using port
-   lsof -i :80
-   # Kill process
-   kill [PID]
-   ```
+1. **Port Conflicts**
+   - Check if ports 80, 443, 1935, 3000, 3001 are available
+   - Use `netstat -tulpn | grep :PORT` to check
 
-2. **Container won't start**:
-   ```bash
-   # Check logs
-   docker logs [container-name]
-   # Rebuild container
-   docker-compose build [service-name]
-   ```
+2. **SSL Issues**
+   - Verify certificate files are in `./ssl/` directory
+   - Check certificate permissions
+   - Ensure domain name matches certificate
 
-3. **Database connection issues**:
-   ```bash
-   # Check if PostgreSQL is healthy
-   docker ps | grep postgres
-   # Restart database
-   docker-compose restart postgres
-   ```
+3. **Database Connection**
+   - Verify PostgreSQL is running
+   - Check database credentials in `.env`
+   - Run `docker exec custom-restreamer-backend-1 npx prisma db push`
 
-### Logs
+4. **Streaming Issues**
+   - Check SRS logs: `docker logs custom-restreamer-srs-1`
+   - Verify RTMP port 1935 is accessible
+   - Test with: `ffmpeg -f lavfi -i testsrc -f flv rtmp://yourdomain.com:1935/live/test`
+
+### Performance Optimization
+
+1. **Resource Limits**
+   - Add resource limits to docker-compose.prod.yml
+   - Monitor with `docker stats`
+
+2. **Caching**
+   - Configure Nginx caching for static assets
+   - Use CDN for video content
+
+3. **Scaling**
+   - Use multiple SRS instances for load balancing
+   - Implement Redis for session management
+
+## Security
+
+### Firewall Configuration
 ```bash
-# All services
-docker-compose logs -f
-
-# Specific service
-docker-compose logs -f backend
-docker-compose logs -f frontend
-docker-compose logs -f nginx
+# Allow only necessary ports
+sudo ufw allow 22    # SSH
+sudo ufw allow 80    # HTTP
+sudo ufw allow 443   # HTTPS
+sudo ufw allow 1935  # RTMP
+sudo ufw enable
 ```
 
-## 📁 Project Structure
-```
-custom-restreamer/
-├── backend/           # Node.js/Express API
-├── frontend/          # Next.js React app
-├── nginx/            # Nginx configuration
-├── docker-compose.yml # Docker services
-└── DEPLOYMENT.md     # This file
-```
+### Environment Security
+- Use strong passwords
+- Generate secure JWT secrets
+- Regularly update dependencies
+- Monitor logs for suspicious activity
 
-## 🌐 Features
-- ✅ RTMP streaming ingestion
-- ✅ HLS video delivery
-- ✅ Real-time analytics
-- ✅ Admin panel
-- ✅ User authentication
-- ✅ Custom branded URLs
-- ✅ WebSocket support
-- ✅ Database persistence
+## Support
 
-## 📞 Support
-For issues or questions, please check the logs first and create an issue on GitHub.
+For issues and questions:
+1. Check the logs first
+2. Review this documentation
+3. Check GitHub issues
+4. Contact support team

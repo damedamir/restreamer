@@ -12,12 +12,25 @@ export default function HomePage() {
     setCurrentTime(new Date().toLocaleString());
   }, []);
 
+  // Get the correct API base URL based on environment
+  const getApiBaseUrl = () => {
+    if (typeof window !== 'undefined') {
+      // Client-side: check if we're on localhost
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Always use direct backend connection for localhost development
+        return 'http://localhost:3001';
+      }
+    }
+    // Server-side or production: use relative URLs (will be proxied by nginx)
+    return ''; // Nginx will proxy /api to backend
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${getApiBaseUrl()}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -25,11 +38,15 @@ export default function HomePage() {
         body: JSON.stringify({ email, password }),
       });
       
+      const data = await response.json();
+      
       if (response.ok) {
+        // Store the token in localStorage
+        localStorage.setItem('token', data.token);
         // Redirect to admin dashboard on successful login
         window.location.href = '/admin';
       } else {
-        alert('Invalid credentials. Please try again.');
+        alert(data.message || 'Invalid credentials. Please try again.');
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -42,31 +59,25 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        {/* Large Icons */}
-        <div className="text-center space-y-8">
+        {/* Large Icons - Side by Side */}
+        <div className="flex justify-center space-x-8">
           {/* Video Camera Icon */}
-          <div className="flex justify-center">
-            <div className="w-24 h-24 border-4 border-black rounded-lg flex items-center justify-center">
-              <svg className="w-12 h-12 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            </div>
+          <div className="w-24 h-24 border-4 border-black rounded-lg flex items-center justify-center">
+            <svg className="w-12 h-12 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
           </div>
 
           {/* @ Symbol Icon */}
-          <div className="flex justify-center">
-            <div className="w-24 h-24 border-4 border-black rounded-full flex items-center justify-center">
-              <span className="text-4xl font-bold text-black">@</span>
-            </div>
+          <div className="w-24 h-24 border-4 border-black rounded-full flex items-center justify-center">
+            <span className="text-4xl font-bold text-black">@</span>
           </div>
 
           {/* Padlock Icon */}
-          <div className="flex justify-center">
-            <div className="w-24 h-24 border-4 border-black rounded-lg flex items-center justify-center">
-              <svg className="w-12 h-12 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
+          <div className="w-24 h-24 border-4 border-black rounded-lg flex items-center justify-center">
+            <svg className="w-12 h-12 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
           </div>
         </div>
 
@@ -138,18 +149,6 @@ export default function HomePage() {
               </button>
             </form>
 
-            {/* Demo Access */}
-            <div className="text-center">
-              <button
-                onClick={() => {
-                  setEmail('admin@demo.com');
-                  setPassword('demo123');
-                }}
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
-              >
-                Use demo credentials
-              </button>
-            </div>
           </div>
         </div>
 

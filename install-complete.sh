@@ -809,8 +809,8 @@ echo "🔧 Creating backend Dockerfile..."
 cat > backend/Dockerfile.final << 'BACKENDFILEEOF'
 FROM node:20-alpine
 
-# Install OpenSSL and other required libraries
-RUN apk add --no-cache openssl libc6-compat
+# Install OpenSSL and other required libraries for Prisma
+RUN apk add --no-cache openssl libc6-compat libssl3
 
 WORKDIR /app
 

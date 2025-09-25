@@ -102,6 +102,11 @@ export default function WebRTCVideoPlayer({
           modifiedSdp = modifiedSdp.replace(/a=msid-semantic: WMS\r\n/, 'a=msid-semantic: WMS\r\na=group:BUNDLE 0 1\r\n');
         }
         
+        // Add setup:active to match SRS's setup:passive
+        if (!modifiedSdp.includes('a=setup:active')) {
+          modifiedSdp = modifiedSdp.replace(/a=group:BUNDLE 0 1\r\n/, 'a=group:BUNDLE 0 1\r\na=setup:active\r\n');
+        }
+        
         // Add rtcp-mux to audio track if not present
         if (modifiedSdp.includes('m=audio') && !modifiedSdp.includes('a=rtcp-mux')) {
           modifiedSdp = modifiedSdp.replace(/(m=audio[^\r\n]*\r\n[^\r\n]*\r\n)/, '$1a=rtcp-mux\r\n');
@@ -110,6 +115,15 @@ export default function WebRTCVideoPlayer({
         // Add rtcp-mux to video track if not present
         if (modifiedSdp.includes('m=video') && !modifiedSdp.includes('a=rtcp-mux')) {
           modifiedSdp = modifiedSdp.replace(/(m=video[^\r\n]*\r\n[^\r\n]*\r\n)/, '$1a=rtcp-mux\r\n');
+        }
+        
+        // Ensure we're set to receive only (since SRS sends to us)
+        if (modifiedSdp.includes('m=audio') && !modifiedSdp.includes('a=recvonly')) {
+          modifiedSdp = modifiedSdp.replace(/(m=audio[^\r\n]*\r\n[^\r\n]*\r\n)/, '$1a=recvonly\r\n');
+        }
+        
+        if (modifiedSdp.includes('m=video') && !modifiedSdp.includes('a=recvonly')) {
+          modifiedSdp = modifiedSdp.replace(/(m=video[^\r\n]*\r\n[^\r\n]*\r\n)/, '$1a=recvonly\r\n');
         }
         
         // Only add codecs if they don't already exist with any payload type
@@ -135,6 +149,7 @@ export default function WebRTCVideoPlayer({
           }
         }
 
+        console.log('Modified SDP offer:', modifiedSdp);
         await pc.setLocalDescription({ type: 'offer', sdp: modifiedSdp });
 
         // Send offer to SRS

@@ -37,17 +37,7 @@ export default function BrandedStreamPage() {
 
   // Get the correct API base URL
   const getApiBaseUrl = () => {
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-      const protocol = window.location.protocol;
-      
-      if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return process.env.NEXT_PUBLIC_API_URL;
-      }
-      
-      return process.env.NEXT_PUBLIC_API_URL;
-    }
-    return process.env.NEXT_PUBLIC_API_URL;
+    return "https://hive.restreamer.website";
   };
 
   // Fetch branded URL configuration

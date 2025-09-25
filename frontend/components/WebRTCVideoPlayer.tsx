@@ -114,7 +114,7 @@ export default function WebRTCVideoPlayer({
         
         // Only add codecs if they don't already exist with any payload type
         if (modifiedSdp.includes('m=audio') && !modifiedSdp.includes('opus/48000/2')) {
-          // Find audio section and add Opus codec
+          // Find audio section and add Opus codec with payload type 111 (SRS expects this)
           const audioMatch = modifiedSdp.match(/m=audio[^\r\n]*\r\n([^\r\n]*\r\n)*/);
           if (audioMatch) {
             const audioSection = audioMatch[0];
@@ -125,12 +125,12 @@ export default function WebRTCVideoPlayer({
         }
         
         if (modifiedSdp.includes('m=video') && !modifiedSdp.includes('H264/90000')) {
-          // Find video section and add H264 codec
+          // Find video section and add H264 codec with payload type 109 (SRS expects this)
           const videoMatch = modifiedSdp.match(/m=video[^\r\n]*\r\n([^\r\n]*\r\n)*/);
           if (videoMatch) {
             const videoSection = videoMatch[0];
             // Add after the first attribute line
-            const newVideoSection = videoSection.replace(/(a=[^\r\n]*\r\n)/, '$1a=rtpmap:96 H264/90000\r\n');
+            const newVideoSection = videoSection.replace(/(a=[^\r\n]*\r\n)/, '$1a=rtpmap:109 H264/90000\r\n');
             modifiedSdp = modifiedSdp.replace(videoSection, newVideoSection);
           }
         }

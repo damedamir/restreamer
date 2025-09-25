@@ -31,13 +31,18 @@ RUN npm install @prisma/client
 
 # Set environment variable to force correct binary target
 ENV PRISMA_CLI_BINARY_TARGETS="debian-openssl-3.0.x"
-RUN npx prisma generate
+ENV PRISMA_QUERY_ENGINE_LIBRARY="/app/node_modules/.prisma/client/libquery_engine-debian-openssl-3.0.x.so.node"
+
+# Force regenerate with explicit binary target
+RUN npx prisma generate --binary-targets=debian-openssl-3.0.x
 
 # Debug: Check system and Prisma binaries
 RUN echo "=== System info ===" && uname -a && lsb_release -a 2>/dev/null || echo "No lsb_release"
 RUN echo "=== OpenSSL version ===" && openssl version
 RUN echo "=== Prisma binaries ===" && ls -la node_modules/.prisma/client/ || echo "No .prisma directory"
 RUN echo "=== Binary files ===" && find node_modules/.prisma/client -name "*.so*" || echo "No .so files found"
+RUN echo "=== Checking for musl binary ===" && find node_modules/.prisma/client -name "*musl*" || echo "No musl binary found (good!)"
+RUN echo "=== Checking for debian binary ===" && find node_modules/.prisma/client -name "*debian*" || echo "No debian binary found (bad!)"
 
 # Build the application
 RUN npm run build

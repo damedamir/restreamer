@@ -28,9 +28,14 @@ RUN echo "Build timestamp: $(date)" > /tmp/build-timestamp
 RUN rm -rf node_modules/.prisma
 RUN rm -rf node_modules/@prisma/client
 RUN npm install @prisma/client
+
+# Set environment variable to force correct binary target
+ENV PRISMA_CLI_BINARY_TARGETS="debian-openssl-3.0.x"
 RUN npx prisma generate
 
-# Debug: Check which binary was generated
+# Debug: Check system and Prisma binaries
+RUN echo "=== System info ===" && uname -a && lsb_release -a 2>/dev/null || echo "No lsb_release"
+RUN echo "=== OpenSSL version ===" && openssl version
 RUN echo "=== Prisma binaries ===" && ls -la node_modules/.prisma/client/ || echo "No .prisma directory"
 RUN echo "=== Binary files ===" && find node_modules/.prisma/client -name "*.so*" || echo "No .so files found"
 

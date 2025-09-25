@@ -24,9 +24,15 @@ RUN echo "=== Files in /app/src ===" && ls -la src/ || echo "src directory not f
 # Cache busting - add timestamp to force rebuild
 RUN echo "Build timestamp: $(date)" > /tmp/build-timestamp
 
-# Clean Prisma cache and generate client
+# Force clean Prisma cache and regenerate with correct binary
 RUN rm -rf node_modules/.prisma
+RUN rm -rf node_modules/@prisma/client
+RUN npm install @prisma/client
 RUN npx prisma generate
+
+# Debug: Check which binary was generated
+RUN echo "=== Prisma binaries ===" && ls -la node_modules/.prisma/client/ || echo "No .prisma directory"
+RUN echo "=== Binary files ===" && find node_modules/.prisma/client -name "*.so*" || echo "No .so files found"
 
 # Build the application
 RUN npm run build

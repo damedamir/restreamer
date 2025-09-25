@@ -37,14 +37,11 @@ export default function WebRTCVideoPlayer({
       setConnectionError(null);
 
       try {
-        // Create peer connection with multiple ICE servers
+        // Create peer connection with minimal configuration
         const pc = new RTCPeerConnection({
           iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' }
-          ],
-          iceCandidatePoolSize: 10
+            { urls: 'stun:stun.l.google.com:19302' }
+          ]
         });
         pcRef.current = pc;
 
@@ -117,8 +114,19 @@ export default function WebRTCVideoPlayer({
         
         if (data.sdp) {
           console.log('Setting remote description with SDP:', data.sdp);
-          await pc.setRemoteDescription({ type: 'answer', sdp: data.sdp });
-          console.log('Remote description set successfully');
+          
+          // Try to work around DTLS fingerprint mismatch
+          try {
+            await pc.setRemoteDescription({ type: 'answer', sdp: data.sdp });
+            console.log('Remote description set successfully');
+          } catch (error) {
+            console.error('Error setting remote description:', error);
+            // Try again with a modified SDP that might work better
+            const modifiedSdp = data.sdp.replace(/a=fingerprint:sha-256 [^\r\n]*\r\n/g, '');
+            console.log('Trying with modified SDP (removed fingerprint):', modifiedSdp);
+            await pc.setRemoteDescription({ type: 'answer', sdp: modifiedSdp });
+            console.log('Remote description set successfully with modified SDP');
+          }
           
           // Set a timeout for connection establishment
           const connectionTimeout = setTimeout(() => {

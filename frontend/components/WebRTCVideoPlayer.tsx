@@ -43,34 +43,11 @@ export default function WebRTCVideoPlayer({
         });
         pcRef.current = pc;
 
-        // Handle ICE candidates
-        pc.onicecandidate = async (event) => {
-          if (event.candidate) {
-            try {
-              const srsUrl = typeof window !== 'undefined' &&
-                (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-                ? 'http://localhost:1985'
-                : 'https://hive.restreamer.website/webrtc';
-
-              const response = await fetch(`${srsUrl}/rtc/v1/play/`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  api: `${srsUrl}/api/v1`,
-                  streamurl: `${rtmpUrl}/${rtmpKey}`,
-                  candidate: event.candidate.candidate
-                })
-              });
-
-              if (!response.ok) {
-                throw new Error(`ICE candidate failed: ${response.status}`);
-              }
-            } catch (error) {
-              console.error('Error sending ICE candidate:', error);
-            }
-          }
+        // Handle ICE candidates - let browser handle automatically
+        pc.onicecandidate = (event) => {
+          // ICE candidates are handled automatically by the browser
+          // No need to send them to SRS
+          console.log('ICE candidate:', event.candidate);
         };
 
         // Handle remote stream

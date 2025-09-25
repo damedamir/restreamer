@@ -99,7 +99,10 @@ Thumbs.db
 # HLS files
 hls/
 *.m3u8
-*.ts
+
+# TypeScript build files (but not source files)
+*.js.map
+*.d.ts
 
 # Prisma
 prisma/migrations/

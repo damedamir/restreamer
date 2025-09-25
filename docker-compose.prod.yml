@@ -56,7 +56,6 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx-simple.conf:/etc/nginx/nginx.conf
-      - ./ssl:/etc/nginx/ssl
     depends_on:
       - frontend
       - backend

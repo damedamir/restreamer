@@ -27,6 +27,7 @@ export default function WebRTCVideoPlayer({
   const connectionAttempted = useRef(false);
 
   useEffect(() => {
+    console.log('WebRTCVideoPlayer useEffect triggered with rtmpKey:', rtmpKey, 'isLive:', isLive);
     if (!rtmpKey || !isLive || connectionAttempted.current) return;
 
     const connectWebRTC = async () => {

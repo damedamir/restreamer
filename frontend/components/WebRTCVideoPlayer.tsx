@@ -109,44 +109,33 @@ export default function WebRTCVideoPlayer({
         
         // Add rtcp-mux to audio track if not present
         if (modifiedSdp.includes('m=audio') && !modifiedSdp.includes('a=rtcp-mux')) {
-          // Find the audio section and add rtcp-mux after the first audio attribute
-          const audioMatch = modifiedSdp.match(/m=audio[^\r\n]*\r\n([^\r\n]*\r\n)*/);
-          if (audioMatch) {
-            const audioSection = audioMatch[0];
-            const newAudioSection = audioSection.replace(/(a=[^\r\n]*\r\n)/, '$1a=rtcp-mux\r\n');
-            modifiedSdp = modifiedSdp.replace(audioSection, newAudioSection);
-          }
+          modifiedSdp = modifiedSdp.replace(/(m=audio[^\r\n]*\r\n[^\r\n]*\r\n)/, '$1a=rtcp-mux\r\n');
         }
         
         // Add rtcp-mux to video track if not present
         if (modifiedSdp.includes('m=video') && !modifiedSdp.includes('a=rtcp-mux')) {
-          // Find the video section and add rtcp-mux after the first video attribute
-          const videoMatch = modifiedSdp.match(/m=video[^\r\n]*\r\n([^\r\n]*\r\n)*/);
-          if (videoMatch) {
-            const videoSection = videoMatch[0];
-            const newVideoSection = videoSection.replace(/(a=[^\r\n]*\r\n)/, '$1a=rtcp-mux\r\n');
-            modifiedSdp = modifiedSdp.replace(videoSection, newVideoSection);
-          }
+          modifiedSdp = modifiedSdp.replace(/(m=video[^\r\n]*\r\n[^\r\n]*\r\n)/, '$1a=rtcp-mux\r\n');
         }
         
-        // Ensure Opus codec is present for audio
-        if (modifiedSdp.includes('m=audio') && !modifiedSdp.includes('a=rtpmap:111 opus/48000/2')) {
-          // Find the audio section and add Opus if missing
+        // Only add codecs if they don't already exist with any payload type
+        if (modifiedSdp.includes('m=audio') && !modifiedSdp.includes('opus/48000/2')) {
+          // Find audio section and add Opus codec
           const audioMatch = modifiedSdp.match(/m=audio[^\r\n]*\r\n([^\r\n]*\r\n)*/);
           if (audioMatch) {
             const audioSection = audioMatch[0];
-            const newAudioSection = audioSection.replace(/(a=rtcp-fb:[^\r\n]*\r\n)/, '$1a=rtpmap:111 opus/48000/2\r\n');
+            // Add after the first attribute line
+            const newAudioSection = audioSection.replace(/(a=[^\r\n]*\r\n)/, '$1a=rtpmap:111 opus/48000/2\r\n');
             modifiedSdp = modifiedSdp.replace(audioSection, newAudioSection);
           }
         }
         
-        // Ensure H264 codec is present for video
-        if (modifiedSdp.includes('m=video') && !modifiedSdp.includes('a=rtpmap:96 H264/90000')) {
-          // Find the video section and add H264 if missing
+        if (modifiedSdp.includes('m=video') && !modifiedSdp.includes('H264/90000')) {
+          // Find video section and add H264 codec
           const videoMatch = modifiedSdp.match(/m=video[^\r\n]*\r\n([^\r\n]*\r\n)*/);
           if (videoMatch) {
             const videoSection = videoMatch[0];
-            const newVideoSection = videoSection.replace(/(a=rtcp-fb:[^\r\n]*\r\n)/, '$1a=rtpmap:96 H264/90000\r\n');
+            // Add after the first attribute line
+            const newVideoSection = videoSection.replace(/(a=[^\r\n]*\r\n)/, '$1a=rtpmap:96 H264/90000\r\n');
             modifiedSdp = modifiedSdp.replace(videoSection, newVideoSection);
           }
         }

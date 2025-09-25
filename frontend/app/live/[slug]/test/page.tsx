@@ -19,7 +19,7 @@ export default function TestPage() {
     const fetchData = async () => {
       try {
         addLog(`Starting fetch for slug: ${slug}`);
-        const apiUrl = `http://localhost:3001/api/branded-urls/slug/${slug}`;
+        const apiUrl = `process.env.NEXT_PUBLIC_API_URL/api/branded-urls/slug/${slug}`;
         addLog(`API URL: ${apiUrl}`);
         
         const response = await fetch(apiUrl);

@@ -80,16 +80,16 @@ export default function BrandedStreamPage() {
       const hostname = window.location.hostname;
       const protocol = window.location.protocol;
       
-      // Always use localhost:3001 for development
+      // Use environment variable for API URL
       if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'http://localhost:3001'; // Backend runs on port 3001
+        return process.env.NEXT_PUBLIC_API_URL; // Backend runs on port 3001
       }
       
       // For production domains, use backend container name
-      return 'http://backend:3001';
+      return process.env.NEXT_PUBLIC_API_URL;
     }
     // Server-side: use backend container name
-    return 'http://backend:3001';
+    return process.env.NEXT_PUBLIC_API_URL;
   };
 
   // Get the correct WebSocket URL based on domain
@@ -97,9 +97,9 @@ export default function BrandedStreamPage() {
     if (typeof window !== 'undefined') {
       const hostname = window.location.hostname;
       
-      // Always use localhost:3001 for development
+      // Use environment variable for API URL
       if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'http://localhost:3001'; // Socket.IO uses HTTP/HTTPS
+        return process.env.NEXT_PUBLIC_API_URL; // Socket.IO uses HTTP/HTTPS
       }
       
       // For production domains, use relative URLs (nginx will proxy)

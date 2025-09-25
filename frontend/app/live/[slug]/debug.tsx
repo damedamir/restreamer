@@ -14,7 +14,7 @@ export default function DebugPage() {
     const fetchData = async () => {
       try {
         console.log('Fetching data for slug:', slug);
-        const response = await fetch(`http://localhost:3001/api/branded-urls/slug/${slug}`);
+        const response = await fetch(`process.env.NEXT_PUBLIC_API_URL/api/branded-urls/slug/${slug}`);
         console.log('Response status:', response.status);
         
         if (response.ok) {

@@ -31,8 +31,8 @@ export function useStreamStatus({ rtmpKey, onStatusChange }: UseStreamStatusProp
     try {
       const apiBaseUrl = typeof window !== 'undefined' && 
         (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-        ? 'http://localhost:3001'
-        : 'http://backend:3001';
+        ? process.env.NEXT_PUBLIC_API_URL
+        : process.env.NEXT_PUBLIC_API_URL;
       
       const response = await fetch(`${apiBaseUrl}/api/stream-status/${rtmpKeyRef.current}`);
       

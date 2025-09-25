@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:15
@@ -16,10 +18,7 @@ services:
     environment:
       DATABASE_URL: postgresql://restreamer:${POSTGRES_PASSWORD:-restreamer_password}@postgres:5432/restreamer
       JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_here}
-      CORS_ORIGIN: ${CORS_ORIGIN:-https://hive.restreamer.website,http://localhost:3000}
-      PORT: 3001
-    ports:
-      - "3001:3001"
+      CORS_ORIGIN: https://hive.restreamer.website,http://localhost:3000
     depends_on:
       - postgres
     restart: unless-stopped
@@ -29,9 +28,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://hive.restreamer.website}
-    ports:
-      - "3000:3000"
+      NEXT_PUBLIC_API_URL: https://hive.restreamer.website/api
     depends_on:
       - backend
     restart: unless-stopped
@@ -39,9 +36,9 @@ services:
   srs:
     image: ossrs/srs:5
     ports:
-      - "1935:1935"  # RTMP
-      - "1985:1985"  # HTTP API
-      - "8080:8080"  # HLS/WebRTC
+      - "1935:1935"
+      - "1985:1985"
+      - "8080:8080"
     volumes:
       - ./nginx/srs-minimal.conf:/usr/local/srs/conf/srs.conf
       - srs_hls:/var/www/hls
@@ -56,6 +53,8 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx-simple.conf:/etc/nginx/nginx.conf
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/lib/letsencrypt:/var/lib/letsencrypt:ro
     depends_on:
       - frontend
       - backend

@@ -13,7 +13,7 @@ export default function StreamPage() {
   useEffect(() => {
     const fetchStreamData = async () => {
       try {
-        const response = await fetch(`http://localhost:3001/api/stream/${slug}`)
+        const response = await fetch(`process.env.NEXT_PUBLIC_API_URL/api/stream/${slug}`)
         
         if (!response.ok) {
           throw new Error('Stream not found')

@@ -18,7 +18,7 @@ export default function HomePage() {
       // Client-side: check if we're on localhost
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         // Always use direct backend connection for localhost development
-        return 'http://localhost:3001';
+        return 'process.env.NEXT_PUBLIC_API_URL';
       }
     }
     // Server-side or production: use relative URLs (will be proxied by nginx)

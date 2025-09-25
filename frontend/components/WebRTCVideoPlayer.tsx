@@ -37,9 +37,14 @@ export default function WebRTCVideoPlayer({
       setConnectionError(null);
 
       try {
-        // Create peer connection
+        // Create peer connection with multiple ICE servers
         const pc = new RTCPeerConnection({
-          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
+          ],
+          iceCandidatePoolSize: 10
         });
         pcRef.current = pc;
 
@@ -57,22 +62,6 @@ export default function WebRTCVideoPlayer({
             setIsConnecting(false);
             setIsConnected(true);
             onCanPlay?.();
-          }
-        };
-
-        // Handle connection state changes
-        pc.onconnectionstatechange = () => {
-          console.log('WebRTC connection state:', pc.connectionState);
-          if (pc.connectionState === 'failed') {
-            console.error('WebRTC connection failed');
-            setConnectionError('WebRTC connection failed');
-            setIsConnecting(false);
-            setIsConnected(false);
-            onError?.('WebRTC connection failed');
-          } else if (pc.connectionState === 'connected') {
-            console.log('WebRTC connection established');
-            setIsConnecting(false);
-            setIsConnected(true);
           }
         };
 
@@ -94,60 +83,9 @@ export default function WebRTCVideoPlayer({
           offerToReceiveVideo: true
         });
 
-        // Modify the SDP to include required SRS attributes
+        // Use the original SDP without modifications - let SRS handle compatibility
         let modifiedSdp = offer.sdp;
-        
-        // Add BUNDLE group if not present
-        if (!modifiedSdp.includes('a=group:BUNDLE')) {
-          modifiedSdp = modifiedSdp.replace(/a=msid-semantic: WMS\r\n/, 'a=msid-semantic: WMS\r\na=group:BUNDLE 0 1\r\n');
-        }
-        
-        // Add setup:active to match SRS's setup:passive
-        if (!modifiedSdp.includes('a=setup:active')) {
-          modifiedSdp = modifiedSdp.replace(/a=group:BUNDLE 0 1\r\n/, 'a=group:BUNDLE 0 1\r\na=setup:active\r\n');
-        }
-        
-        // Add rtcp-mux to audio track if not present
-        if (modifiedSdp.includes('m=audio') && !modifiedSdp.includes('a=rtcp-mux')) {
-          modifiedSdp = modifiedSdp.replace(/(m=audio[^\r\n]*\r\n[^\r\n]*\r\n)/, '$1a=rtcp-mux\r\n');
-        }
-        
-        // Add rtcp-mux to video track if not present
-        if (modifiedSdp.includes('m=video') && !modifiedSdp.includes('a=rtcp-mux')) {
-          modifiedSdp = modifiedSdp.replace(/(m=video[^\r\n]*\r\n[^\r\n]*\r\n)/, '$1a=rtcp-mux\r\n');
-        }
-        
-        // Ensure we're set to receive only (since SRS sends to us)
-        if (modifiedSdp.includes('m=audio') && !modifiedSdp.includes('a=recvonly')) {
-          modifiedSdp = modifiedSdp.replace(/(m=audio[^\r\n]*\r\n[^\r\n]*\r\n)/, '$1a=recvonly\r\n');
-        }
-        
-        if (modifiedSdp.includes('m=video') && !modifiedSdp.includes('a=recvonly')) {
-          modifiedSdp = modifiedSdp.replace(/(m=video[^\r\n]*\r\n[^\r\n]*\r\n)/, '$1a=recvonly\r\n');
-        }
-        
-        // Only add codecs if they don't already exist with any payload type
-        if (modifiedSdp.includes('m=audio') && !modifiedSdp.includes('opus/48000/2')) {
-          // Find audio section and add Opus codec with payload type 111 (SRS expects this)
-          const audioMatch = modifiedSdp.match(/m=audio[^\r\n]*\r\n([^\r\n]*\r\n)*/);
-          if (audioMatch) {
-            const audioSection = audioMatch[0];
-            // Add after the first attribute line
-            const newAudioSection = audioSection.replace(/(a=[^\r\n]*\r\n)/, '$1a=rtpmap:111 opus/48000/2\r\n');
-            modifiedSdp = modifiedSdp.replace(audioSection, newAudioSection);
-          }
-        }
-        
-        if (modifiedSdp.includes('m=video') && !modifiedSdp.includes('H264/90000')) {
-          // Find video section and add H264 codec with payload type 109 (SRS expects this)
-          const videoMatch = modifiedSdp.match(/m=video[^\r\n]*\r\n([^\r\n]*\r\n)*/);
-          if (videoMatch) {
-            const videoSection = videoMatch[0];
-            // Add after the first attribute line
-            const newVideoSection = videoSection.replace(/(a=[^\r\n]*\r\n)/, '$1a=rtpmap:109 H264/90000\r\n');
-            modifiedSdp = modifiedSdp.replace(videoSection, newVideoSection);
-          }
-        }
+        console.log('Original SDP offer:', modifiedSdp);
 
         console.log('Modified SDP offer:', modifiedSdp);
         await pc.setLocalDescription({ type: 'offer', sdp: modifiedSdp });
@@ -181,6 +119,35 @@ export default function WebRTCVideoPlayer({
           console.log('Setting remote description with SDP:', data.sdp);
           await pc.setRemoteDescription({ type: 'answer', sdp: data.sdp });
           console.log('Remote description set successfully');
+          
+          // Set a timeout for connection establishment
+          const connectionTimeout = setTimeout(() => {
+            if (pc.connectionState !== 'connected' && pc.connectionState !== 'connecting') {
+              console.error('WebRTC connection timeout');
+              setConnectionError('WebRTC connection timeout');
+              setIsConnecting(false);
+              setIsConnected(false);
+              onError?.('WebRTC connection timeout');
+            }
+          }, 10000); // 10 second timeout
+          
+          // Clear timeout if connection succeeds
+          pc.onconnectionstatechange = () => {
+            console.log('WebRTC connection state:', pc.connectionState);
+            if (pc.connectionState === 'connected') {
+              clearTimeout(connectionTimeout);
+              console.log('WebRTC connection established');
+              setIsConnecting(false);
+              setIsConnected(true);
+            } else if (pc.connectionState === 'failed') {
+              clearTimeout(connectionTimeout);
+              console.error('WebRTC connection failed');
+              setConnectionError('WebRTC connection failed');
+              setIsConnecting(false);
+              setIsConnected(false);
+              onError?.('WebRTC connection failed');
+            }
+          };
         } else {
           console.error('No SDP in SRS response:', data);
           throw new Error('No SDP received from SRS');

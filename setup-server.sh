@@ -45,11 +45,14 @@ check_root() {
 
 # Function to check if user has sudo privileges
 check_sudo() {
-    if ! sudo -n true 2>/dev/null; then
+    # Check if user is in sudo group or can run sudo
+    if ! groups | grep -q sudo && ! sudo -v 2>/dev/null; then
         print_error "This script requires sudo privileges"
         print_status "Please ensure your user has sudo access"
+        print_status "You can add your user to sudo group with: sudo usermod -aG sudo $USER"
         exit 1
     fi
+    print_success "Sudo privileges confirmed"
 }
 
 # Function to cleanup previous installation

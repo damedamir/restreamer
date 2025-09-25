@@ -62,11 +62,29 @@ export default function WebRTCVideoPlayer({
 
         // Handle connection state changes
         pc.onconnectionstatechange = () => {
+          console.log('WebRTC connection state:', pc.connectionState);
           if (pc.connectionState === 'failed') {
+            console.error('WebRTC connection failed');
             setConnectionError('WebRTC connection failed');
             setIsConnecting(false);
             setIsConnected(false);
             onError?.('WebRTC connection failed');
+          } else if (pc.connectionState === 'connected') {
+            console.log('WebRTC connection established');
+            setIsConnecting(false);
+            setIsConnected(true);
+          }
+        };
+
+        // Handle ICE connection state changes
+        pc.oniceconnectionstatechange = () => {
+          console.log('ICE connection state:', pc.iceConnectionState);
+          if (pc.iceConnectionState === 'failed') {
+            console.error('ICE connection failed');
+            setConnectionError('ICE connection failed');
+            setIsConnecting(false);
+            setIsConnected(false);
+            onError?.('ICE connection failed');
           }
         };
 
@@ -142,8 +160,15 @@ export default function WebRTCVideoPlayer({
         }
 
         const data = await response.json();
+        console.log('SRS response:', data);
+        
         if (data.sdp) {
+          console.log('Setting remote description with SDP:', data.sdp);
           await pc.setRemoteDescription({ type: 'answer', sdp: data.sdp });
+          console.log('Remote description set successfully');
+        } else {
+          console.error('No SDP in SRS response:', data);
+          throw new Error('No SDP received from SRS');
         }
 
       } catch (error) {

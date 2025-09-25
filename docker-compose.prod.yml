@@ -39,6 +39,7 @@ services:
       - "1935:1935"
       - "1985:1985"
       - "8080:8080"
+      - "8000:8000"
     volumes:
       - ./nginx/srs-minimal.conf:/usr/local/srs/conf/srs.conf
       - srs_hls:/var/www/hls

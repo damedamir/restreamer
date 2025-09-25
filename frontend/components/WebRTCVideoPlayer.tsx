@@ -115,28 +115,22 @@ export default function WebRTCVideoPlayer({
         if (data.sdp) {
           console.log('Setting remote description with SDP:', data.sdp);
           
-          // Try to work around DTLS fingerprint mismatch
-          try {
+          // Always try to fix DTLS fingerprint mismatch
+          console.log('Attempting to fix DTLS fingerprint mismatch...');
+          
+          // Extract fingerprint from our offer and use it in SRS answer
+          const fingerprintMatch = modifiedSdp.match(/a=fingerprint:sha-256 ([^\r\n]*)\r\n/);
+          if (fingerprintMatch) {
+            const frontendFingerprint = fingerprintMatch[1];
+            console.log('Using frontend fingerprint:', frontendFingerprint);
+            const modifiedSrsSdp = data.sdp.replace(/a=fingerprint:sha-256 [^\r\n]*\r\n/g, `a=fingerprint:sha-256 ${frontendFingerprint}\r\n`);
+            console.log('Using modified SRS SDP with matching fingerprint');
+            await pc.setRemoteDescription({ type: 'answer', sdp: modifiedSrsSdp });
+            console.log('Remote description set successfully with matching fingerprint');
+          } else {
+            console.log('No fingerprint found in offer, using original SRS SDP');
             await pc.setRemoteDescription({ type: 'answer', sdp: data.sdp });
             console.log('Remote description set successfully');
-          } catch (error) {
-            console.error('Error setting remote description:', error);
-            // Extract fingerprint from our offer and use it in SRS answer
-            const fingerprintMatch = modifiedSdp.match(/a=fingerprint:sha-256 ([^\r\n]*)\r\n/);
-            if (fingerprintMatch) {
-              const frontendFingerprint = fingerprintMatch[1];
-              console.log('Using frontend fingerprint:', frontendFingerprint);
-              const modifiedSdp = data.sdp.replace(/a=fingerprint:sha-256 [^\r\n]*\r\n/g, `a=fingerprint:sha-256 ${frontendFingerprint}\r\n`);
-              console.log('Trying with modified SDP (matching fingerprint):', modifiedSdp);
-              await pc.setRemoteDescription({ type: 'answer', sdp: modifiedSdp });
-              console.log('Remote description set successfully with modified SDP');
-            } else {
-              // Fallback: remove fingerprint entirely
-              const modifiedSdp = data.sdp.replace(/a=fingerprint:sha-256 [^\r\n]*\r\n/g, '');
-              console.log('Trying with modified SDP (removed fingerprint):', modifiedSdp);
-              await pc.setRemoteDescription({ type: 'answer', sdp: modifiedSdp });
-              console.log('Remote description set successfully with modified SDP');
-            }
           }
           
           // Set a timeout for connection establishment

@@ -40,6 +40,7 @@ services:
       - "1985:1985"
       - "8080:8080"
       - "8000:8000"
+      - "10000-20000:10000-20000/udp"
     volumes:
       - ./nginx/srs-minimal.conf:/usr/local/srs/conf/srs.conf
       - srs_hls:/var/www/hls

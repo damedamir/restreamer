@@ -29,9 +29,9 @@ export function useStreamStatus({ rtmpKey, onStatusChange }: UseStreamStatusProp
     if (!isMountedRef.current || !rtmpKeyRef.current) return;
     
     try {
-      const apiBaseUrl = "https://hive.restreamer.website";
+      const apiBaseUrl = "https://hive.restreamer.website/api";
       
-      const response = await fetch(`${apiBaseUrl}/api/stream-status/${rtmpKeyRef.current}`);
+      const response = await fetch(`${apiBaseUrl}/stream-status/${rtmpKeyRef.current}`);
       
       if (!isMountedRef.current) return; // Check again after async operation
       

@@ -37,7 +37,7 @@ export default function BrandedStreamPage() {
 
   // Get the correct API base URL
   const getApiBaseUrl = () => {
-    return "https://hive.restreamer.website";
+    return "https://hive.restreamer.website/api";
   };
 
   // Fetch branded URL configuration

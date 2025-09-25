@@ -93,13 +93,41 @@ export default function WebRTCVideoPlayer({
           }
         };
 
-        // Create offer
+        // Create offer with correct SDP format for SRS
         const offer = await pc.createOffer({
           offerToReceiveAudio: true,
           offerToReceiveVideo: true
         });
 
-        await pc.setLocalDescription(offer);
+        // Modify the SDP to include required SRS attributes
+        let modifiedSdp = offer.sdp;
+        
+        // Add BUNDLE group if not present
+        if (!modifiedSdp.includes('a=group:BUNDLE')) {
+          modifiedSdp = modifiedSdp.replace(/a=msid-semantic: WMS\r\n/, 'a=msid-semantic: WMS\r\na=group:BUNDLE 0 1\r\n');
+        }
+        
+        // Add rtcp-mux to audio track if not present
+        if (modifiedSdp.includes('m=audio') && !modifiedSdp.includes('a=rtcp-mux')) {
+          modifiedSdp = modifiedSdp.replace(/a=rtcp-rsize\r\n/, 'a=rtcp-rsize\r\na=rtcp-mux\r\n');
+        }
+        
+        // Add rtcp-mux to video track if not present
+        if (modifiedSdp.includes('m=video') && !modifiedSdp.includes('a=rtcp-mux')) {
+          modifiedSdp = modifiedSdp.replace(/a=rtcp-rsize\r\n/, 'a=rtcp-rsize\r\na=rtcp-mux\r\n');
+        }
+        
+        // Ensure Opus codec is present for audio
+        if (modifiedSdp.includes('m=audio') && !modifiedSdp.includes('a=rtpmap:111 opus/48000/2')) {
+          modifiedSdp = modifiedSdp.replace(/a=rtcp-fb:111 transport-cc\r\n/, 'a=rtcp-fb:111 transport-cc\r\na=rtpmap:111 opus/48000/2\r\n');
+        }
+        
+        // Ensure H264 codec is present for video
+        if (modifiedSdp.includes('m=video') && !modifiedSdp.includes('a=rtpmap:96 H264/90000')) {
+          modifiedSdp = modifiedSdp.replace(/a=rtcp-fb:96 nack pli\r\n/, 'a=rtcp-fb:96 nack pli\r\na=rtpmap:96 H264/90000\r\n');
+        }
+
+        await pc.setLocalDescription({ type: 'offer', sdp: modifiedSdp });
 
         // Send offer to SRS
         const srsUrl = typeof window !== 'undefined' &&
@@ -115,7 +143,7 @@ export default function WebRTCVideoPlayer({
           body: JSON.stringify({
             api: `${srsUrl}/api/v1`,
             streamurl: `${rtmpUrl}/${rtmpKey}`,
-            sdp: offer.sdp
+            sdp: modifiedSdp
           })
         });
 

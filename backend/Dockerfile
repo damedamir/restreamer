@@ -24,7 +24,8 @@ RUN echo "=== Files in /app/src ===" && ls -la src/ || echo "src directory not f
 # Cache busting - add timestamp to force rebuild
 RUN echo "Build timestamp: $(date)" > /tmp/build-timestamp
 
-# Generate Prisma client
+# Clean Prisma cache and generate client
+RUN rm -rf node_modules/.prisma
 RUN npx prisma generate
 
 # Build the application

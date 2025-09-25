@@ -340,12 +340,16 @@ deploy_application() {
         SUDO_CMD=""
     fi
     
+    # Pull latest code
+    print_status "Pulling latest code..."
+    git pull origin main
+    
     # Start services
     print_status "Starting Docker services..."
     if [ -n "$SUDO_CMD" ]; then
-        sudo $COMPOSE_CMD -f docker-compose.prod.yml up -d --build
+        sudo $COMPOSE_CMD -f docker-compose.prod.yml up -d --build --no-cache
     else
-        $COMPOSE_CMD -f docker-compose.prod.yml up -d --build
+        $COMPOSE_CMD -f docker-compose.prod.yml up -d --build --no-cache
     fi
     
     # Wait for services to be ready

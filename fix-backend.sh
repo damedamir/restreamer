@@ -9,6 +9,7 @@ cd /home/damir/custom-restreamer
 echo "📥 Pulling latest code..."
 git fetch origin
 git reset --hard origin/main
+git clean -fdx
 
 # Verify the backend index.ts is correct
 echo "🔍 Checking backend index.ts..."

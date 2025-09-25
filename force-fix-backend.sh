@@ -17,6 +17,7 @@ sudo docker image prune -a -f
 echo "📥 Force pulling latest code..."
 git fetch origin
 git reset --hard origin/main
+git clean -fdx
 
 # Verify we have the correct files
 echo "🔍 Verifying files..."

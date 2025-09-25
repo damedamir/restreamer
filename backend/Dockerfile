@@ -15,6 +15,9 @@ COPY . .
 RUN echo "=== Files in /app ===" && ls -la
 RUN echo "=== Files in /app/src ===" && ls -la src/ || echo "src directory not found"
 
+# Cache busting - add timestamp to force rebuild
+RUN echo "Build timestamp: $(date)" > /tmp/build-timestamp
+
 # Generate Prisma client
 RUN npx prisma generate
 

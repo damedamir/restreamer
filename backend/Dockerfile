@@ -1,18 +1,18 @@
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
+
+# Install required system dependencies for Prisma
+RUN apt-get update && apt-get install -y \
+    openssl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy package files first
 COPY package*.json ./
 
 # Install all dependencies (including dev dependencies for build)
 RUN npm install
-
-# Install required libraries for Prisma on Alpine Linux
-RUN apk add --no-cache \
-    openssl1.1-compat \
-    libc6-compat \
-    libssl1.1
 
 # Copy source code
 COPY . .
@@ -24,8 +24,7 @@ RUN echo "=== Files in /app/src ===" && ls -la src/ || echo "src directory not f
 # Cache busting - add timestamp to force rebuild
 RUN echo "Build timestamp: $(date)" > /tmp/build-timestamp
 
-# Clean and regenerate Prisma client AFTER installing libraries
-RUN rm -rf node_modules/.prisma
+# Generate Prisma client
 RUN npx prisma generate
 
 # Build the application

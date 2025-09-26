@@ -30,6 +30,7 @@ export default function WebRTCVideoPlayer({
     console.log('🚀 WebRTCVideoPlayer useEffect triggered');
     console.log('📊 Props:', { rtmpKey, isLive, rtmpUrl });
     console.log('📊 State:', { isConnecting, isConnected, connectionError });
+    console.log('🔥 THIS IS THE NEW VERSION WITH DEBUGGING LOGS!');
     
     if (!rtmpKey || !isLive || connectionAttempted.current) {
       console.log('❌ Skipping WebRTC connection:', { 

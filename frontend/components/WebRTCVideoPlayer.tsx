@@ -124,10 +124,15 @@ export default function WebRTCVideoPlayer({
         });
         console.log('✅ WebRTC offer created:', offer.type);
 
-        // Set local description
+        // Set local description with timeout
         console.log('📝 Setting local description...');
         try {
-          await pc.setLocalDescription(offer);
+          const setLocalDescriptionPromise = pc.setLocalDescription(offer);
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('setLocalDescription timeout')), 5000)
+          );
+          
+          await Promise.race([setLocalDescriptionPromise, timeoutPromise]);
           console.log('✅ Local description set successfully');
         } catch (error) {
           console.error('❌ Failed to set local description:', error);

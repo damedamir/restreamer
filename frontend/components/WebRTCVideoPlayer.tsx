@@ -215,8 +215,8 @@ export default function WebRTCVideoPlayer({
           
           // Clear timeout if connection succeeds
           const originalConnectionStateChange = pc.onconnectionstatechange;
-          pc.onconnectionstatechange = () => {
-            if (originalConnectionStateChange) originalConnectionStateChange();
+          pc.onconnectionstatechange = (event) => {
+            if (originalConnectionStateChange) originalConnectionStateChange(event);
             if (pc.connectionState === 'connected' || pc.connectionState === 'failed') {
               clearTimeout(connectionTimeout);
             }

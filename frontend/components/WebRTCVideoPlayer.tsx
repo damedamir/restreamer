@@ -126,8 +126,13 @@ export default function WebRTCVideoPlayer({
 
         // Set local description
         console.log('📝 Setting local description...');
-        await pc.setLocalDescription(offer);
-        console.log('✅ Local description set successfully');
+        try {
+          await pc.setLocalDescription(offer);
+          console.log('✅ Local description set successfully');
+        } catch (error) {
+          console.error('❌ Failed to set local description:', error);
+          throw error;
+        }
 
         // Send offer to SRS
         const srsUrl = typeof window !== 'undefined' &&

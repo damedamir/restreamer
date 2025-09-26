@@ -54,11 +54,16 @@ export default function WebRTCVideoPlayer({
 
       try {
         console.log('🔗 Creating RTCPeerConnection...');
-        // Create peer connection with minimal configuration
+        // Create peer connection with comprehensive ICE servers
         const pc = new RTCPeerConnection({
           iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' }
-          ]
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' }
+          ],
+          iceCandidatePoolSize: 10
         });
         pcRef.current = pc;
         console.log('✅ RTCPeerConnection created successfully');
@@ -99,6 +104,28 @@ export default function WebRTCVideoPlayer({
             onError?.('ICE connection failed');
           } else if (pc.iceConnectionState === 'connected') {
             console.log('✅ ICE connection established');
+          } else if (pc.iceConnectionState === 'checking') {
+            console.log('🔄 ICE connection checking...');
+          } else if (pc.iceConnectionState === 'disconnected') {
+            console.log('⚠️ ICE connection disconnected');
+          }
+        };
+
+        // Handle connection state changes
+        pc.onconnectionstatechange = () => {
+          console.log('🔗 Connection state changed:', pc.connectionState);
+          if (pc.connectionState === 'connected') {
+            console.log('✅ WebRTC connection established');
+            setIsConnecting(false);
+            setIsConnected(true);
+          } else if (pc.connectionState === 'failed') {
+            console.error('❌ WebRTC connection failed');
+            setConnectionError('WebRTC connection failed');
+            setIsConnecting(false);
+            setIsConnected(false);
+            onError?.('WebRTC connection failed');
+          } else if (pc.connectionState === 'connecting') {
+            console.log('🔄 WebRTC connection in progress...');
           }
         };
 
@@ -187,22 +214,11 @@ export default function WebRTCVideoPlayer({
           }, 10000); // 10 second timeout
           
           // Clear timeout if connection succeeds
+          const originalConnectionStateChange = pc.onconnectionstatechange;
           pc.onconnectionstatechange = () => {
-            console.log('🔗 WebRTC connection state changed:', pc.connectionState);
-            if (pc.connectionState === 'connected') {
+            if (originalConnectionStateChange) originalConnectionStateChange();
+            if (pc.connectionState === 'connected' || pc.connectionState === 'failed') {
               clearTimeout(connectionTimeout);
-              console.log('✅ WebRTC connection established');
-              setIsConnecting(false);
-              setIsConnected(true);
-            } else if (pc.connectionState === 'failed') {
-              clearTimeout(connectionTimeout);
-              console.error('❌ WebRTC connection failed');
-              setConnectionError('WebRTC connection failed');
-              setIsConnecting(false);
-              setIsConnected(false);
-              onError?.('WebRTC connection failed');
-            } else if (pc.connectionState === 'connecting') {
-              console.log('🔄 WebRTC connection in progress...');
             }
           };
           

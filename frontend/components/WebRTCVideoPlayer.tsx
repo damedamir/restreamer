@@ -27,17 +27,33 @@ export default function WebRTCVideoPlayer({
   const connectionAttempted = useRef(false);
 
   useEffect(() => {
-    console.log('WebRTCVideoPlayer useEffect triggered with rtmpKey:', rtmpKey, 'isLive:', isLive);
-    if (!rtmpKey || !isLive || connectionAttempted.current) return;
+    console.log('🚀 WebRTCVideoPlayer useEffect triggered');
+    console.log('📊 Props:', { rtmpKey, isLive, rtmpUrl });
+    console.log('📊 State:', { isConnecting, isConnected, connectionError });
+    console.log('📊 Connection attempted:', connectionAttempted.current);
+    
+    if (!rtmpKey || !isLive || connectionAttempted.current) {
+      console.log('❌ Skipping WebRTC connection:', { 
+        noRtmpKey: !rtmpKey, 
+        notLive: !isLive, 
+        alreadyAttempted: connectionAttempted.current 
+      });
+      return;
+    }
 
     const connectWebRTC = async () => {
-      if (isConnecting || isConnected) return;
+      if (isConnecting || isConnected) {
+        console.log('❌ Skipping connection - already connecting or connected');
+        return;
+      }
       
+      console.log('🎯 Starting WebRTC connection process...');
       connectionAttempted.current = true;
       setIsConnecting(true);
       setConnectionError(null);
 
       try {
+        console.log('🔗 Creating RTCPeerConnection...');
         // Create peer connection with minimal configuration
         const pc = new RTCPeerConnection({
           iceServers: [
@@ -45,48 +61,63 @@ export default function WebRTCVideoPlayer({
           ]
         });
         pcRef.current = pc;
+        console.log('✅ RTCPeerConnection created successfully');
 
         // Handle ICE candidates - let browser handle automatically
         pc.onicecandidate = (event) => {
           // ICE candidates are handled automatically by the browser
           // No need to send them to SRS
-          console.log('ICE candidate:', event.candidate);
+          if (event.candidate) {
+            console.log('🧊 ICE candidate generated:', event.candidate.candidate);
+          } else {
+            console.log('🧊 ICE gathering complete');
+          }
         };
 
         // Handle remote stream
         pc.ontrack = (event) => {
+          console.log('🎥 WebRTC track received:', event.track.kind, event.track.id);
+          console.log('🎥 Track stream:', event.streams[0]);
           if (videoRef.current && event.streams[0]) {
+            console.log('🎥 Setting video source object...');
             videoRef.current.srcObject = event.streams[0];
             setIsConnecting(false);
             setIsConnected(true);
+            console.log('✅ WebRTC connection established successfully!');
             onCanPlay?.();
           }
         };
 
         // Handle ICE connection state changes
         pc.oniceconnectionstatechange = () => {
-          console.log('ICE connection state:', pc.iceConnectionState);
+          console.log('🧊 ICE connection state changed:', pc.iceConnectionState);
           if (pc.iceConnectionState === 'failed') {
-            console.error('ICE connection failed');
+            console.error('❌ ICE connection failed');
             setConnectionError('ICE connection failed');
             setIsConnecting(false);
             setIsConnected(false);
             onError?.('ICE connection failed');
+          } else if (pc.iceConnectionState === 'connected') {
+            console.log('✅ ICE connection established');
           }
         };
 
         // Create offer with correct SDP format for SRS
+        console.log('📝 Creating WebRTC offer...');
         const offer = await pc.createOffer({
           offerToReceiveAudio: true,
           offerToReceiveVideo: true
         });
+        console.log('✅ WebRTC offer created:', offer.type);
 
         // Use the original SDP without modifications - let SRS handle compatibility
         let modifiedSdp = offer.sdp;
-        console.log('Original SDP offer:', modifiedSdp);
+        console.log('📝 Original SDP offer length:', modifiedSdp.length);
+        console.log('📝 SDP offer preview:', modifiedSdp.substring(0, 200) + '...');
 
-        console.log('Modified SDP offer:', modifiedSdp);
+        console.log('📝 Setting local description...');
         await pc.setLocalDescription({ type: 'offer', sdp: modifiedSdp });
+        console.log('✅ Local description set successfully');
 
         // Send offer to SRS
         const srsUrl = typeof window !== 'undefined' &&
@@ -94,81 +125,100 @@ export default function WebRTCVideoPlayer({
           ? 'http://localhost:1985'
           : 'https://hive.restreamer.website/webrtc';
 
+        console.log('📡 SRS URL:', srsUrl);
+        console.log('📡 Stream URL:', `${rtmpUrl}/${rtmpKey}`);
+        
+        const requestBody = {
+          api: `${srsUrl}/api/v1`,
+          streamurl: `${rtmpUrl}/${rtmpKey}`,
+          sdp: modifiedSdp
+        };
+        console.log('📡 Request body:', requestBody);
+
+        console.log('📡 Sending offer to SRS...');
         const response = await fetch(`${srsUrl}/rtc/v1/play/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            api: `${srsUrl}/api/v1`,
-            streamurl: `${rtmpUrl}/${rtmpKey}`,
-            sdp: modifiedSdp
-          })
+          body: JSON.stringify(requestBody)
         });
 
+        console.log('📡 SRS response status:', response.status, response.statusText);
         if (!response.ok) {
-          throw new Error(`WebRTC offer failed: ${response.status}`);
+          const errorText = await response.text();
+          console.error('❌ WebRTC offer failed:', response.status, errorText);
+          throw new Error(`WebRTC offer failed: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
-        console.log('SRS response:', data);
+        console.log('📡 SRS response data:', data);
         
         if (data.sdp) {
-          console.log('Setting remote description with SDP:', data.sdp);
+          console.log('📝 SRS returned SDP answer, length:', data.sdp.length);
+          console.log('📝 SDP answer preview:', data.sdp.substring(0, 200) + '...');
           
           // Always try to fix DTLS fingerprint mismatch
-          console.log('Attempting to fix DTLS fingerprint mismatch...');
+          console.log('🔧 Attempting to fix DTLS fingerprint mismatch...');
           
           // Extract fingerprint from our offer and use it in SRS answer
           const fingerprintMatch = modifiedSdp.match(/a=fingerprint:sha-256 ([^\r\n]*)\r\n/);
           if (fingerprintMatch) {
             const frontendFingerprint = fingerprintMatch[1];
-            console.log('Using frontend fingerprint:', frontendFingerprint);
+            console.log('🔧 Using frontend fingerprint:', frontendFingerprint);
             const modifiedSrsSdp = data.sdp.replace(/a=fingerprint:sha-256 [^\r\n]*\r\n/g, `a=fingerprint:sha-256 ${frontendFingerprint}\r\n`);
-            console.log('Using modified SRS SDP with matching fingerprint');
+            console.log('🔧 Using modified SRS SDP with matching fingerprint');
             await pc.setRemoteDescription({ type: 'answer', sdp: modifiedSrsSdp });
-            console.log('Remote description set successfully with matching fingerprint');
+            console.log('✅ Remote description set successfully with matching fingerprint');
           } else {
-            console.log('No fingerprint found in offer, using original SRS SDP');
+            console.log('🔧 No fingerprint found in offer, using original SRS SDP');
             await pc.setRemoteDescription({ type: 'answer', sdp: data.sdp });
-            console.log('Remote description set successfully');
+            console.log('✅ Remote description set successfully');
           }
           
           // Set a timeout for connection establishment
+          console.log('⏰ Setting connection timeout (10 seconds)...');
           const connectionTimeout = setTimeout(() => {
-            if (pc.connectionState !== 'connected' && pc.connectionState !== 'connecting') {
-              console.error('WebRTC connection timeout');
-              setConnectionError('WebRTC connection timeout');
-              setIsConnecting(false);
-              setIsConnected(false);
-              onError?.('WebRTC connection timeout');
-            }
+            console.error('⏰ WebRTC connection timeout');
+            setConnectionError('WebRTC connection timeout');
+            setIsConnecting(false);
+            setIsConnected(false);
+            onError?.('WebRTC connection timeout');
           }, 10000); // 10 second timeout
           
           // Clear timeout if connection succeeds
           pc.onconnectionstatechange = () => {
-            console.log('WebRTC connection state:', pc.connectionState);
+            console.log('🔗 WebRTC connection state changed:', pc.connectionState);
             if (pc.connectionState === 'connected') {
               clearTimeout(connectionTimeout);
-              console.log('WebRTC connection established');
+              console.log('✅ WebRTC connection established');
               setIsConnecting(false);
               setIsConnected(true);
             } else if (pc.connectionState === 'failed') {
               clearTimeout(connectionTimeout);
-              console.error('WebRTC connection failed');
+              console.error('❌ WebRTC connection failed');
               setConnectionError('WebRTC connection failed');
               setIsConnecting(false);
               setIsConnected(false);
               onError?.('WebRTC connection failed');
+            } else if (pc.connectionState === 'connecting') {
+              console.log('🔄 WebRTC connection in progress...');
             }
           };
+          
+          console.log('🎯 WebRTC setup complete, waiting for connection...');
         } else {
-          console.error('No SDP in SRS response:', data);
+          console.error('❌ No SDP in SRS response:', data);
           throw new Error('No SDP received from SRS');
         }
 
       } catch (error) {
-        console.error('WebRTC connection error:', error);
+        console.error('❌ WebRTC connection error:', error);
+        console.error('❌ Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
         setConnectionError('WebRTC connection failed');
         setIsConnecting(false);
         setIsConnected(false);

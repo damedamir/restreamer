@@ -37,7 +37,14 @@ export default function BrandedStreamPage() {
 
   // Get the correct API base URL
   const getApiBaseUrl = () => {
-    return "https://hive.restreamer.website/api";
+    if (typeof window !== 'undefined') {
+      // Client-side: check if we're on localhost
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:3001/api';
+      }
+    }
+    // Server-side or production: use environment variable or fallback
+    return process.env.NEXT_PUBLIC_API_URL || 'https://hive.restreamer.website/api';
   };
 
   // Fetch branded URL configuration
@@ -47,13 +54,17 @@ export default function BrandedStreamPage() {
       
       try {
         setLoading(true);
-        const response = await fetch(`${getApiBaseUrl()}/branded-urls/slug/${slug}`);
+        const apiUrl = `${getApiBaseUrl()}/branded-urls/slug/${slug}`;
+        console.log('Fetching branded URL from:', apiUrl);
+        const response = await fetch(apiUrl);
+        console.log('Response status:', response.status);
         
         if (!response.ok) {
           throw new Error('Branded URL not found');
         }
         
         const data = await response.json();
+        console.log('Branded URL data:', data);
         setBrandedUrl(data);
       } catch (err) {
         console.error('Error fetching branded URL:', err);
@@ -63,7 +74,10 @@ export default function BrandedStreamPage() {
       }
     };
 
-    fetchBrandedUrl();
+    // Only fetch on client side
+    if (typeof window !== 'undefined') {
+      fetchBrandedUrl();
+    }
   }, [slug]);
 
   // Get stream status using the correct stream key from branded URL

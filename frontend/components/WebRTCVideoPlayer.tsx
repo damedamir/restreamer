@@ -41,6 +41,80 @@ export default function WebRTCVideoPlayer({
       return;
     }
 
+    // Try HLS first as primary method for production
+    const tryHLSFirst = async () => {
+      console.log('🎯 Trying HLS streaming first...');
+      try {
+        const streamName = rtmpKey.replace(/\$/g, ''); // Remove $ character
+        const hlsUrl = `https://hive.restreamer.website/live/${streamName}.m3u8`;
+        
+        console.log(`📺 Testing HLS URL: ${hlsUrl}`);
+        
+        // Test if HLS manifest exists
+        const response = await fetch(hlsUrl);
+        if (response.ok) {
+          const manifestText = await response.text();
+          if (manifestText.includes('EXTM3U')) {
+            console.log('✅ HLS manifest found, using HLS streaming');
+            
+            // Load HLS.js
+            if (typeof window !== 'undefined' && !(window as any).Hls) {
+              const script = document.createElement('script');
+              script.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
+              script.onload = () => {
+                console.log('✅ HLS.js loaded, starting playback');
+                startHLSPlayback(streamName);
+              };
+              document.head.appendChild(script);
+            } else {
+              startHLSPlayback(streamName);
+            }
+            return true;
+          }
+        }
+      } catch (error) {
+        console.log('❌ HLS failed, falling back to WebRTC:', error);
+      }
+      return false;
+    };
+
+    const startHLSPlayback = (streamName: string) => {
+      if (videoRef.current) {
+        const hlsUrl = `https://hive.restreamer.website/live/${streamName}.m3u8`;
+        
+        if ((window as any).Hls && (window as any).Hls.isSupported()) {
+          const hls = new (window as any).Hls();
+          hls.loadSource(hlsUrl);
+          hls.attachMedia(videoRef.current);
+          
+          hls.on((window as any).Hls.Events.MANIFEST_PARSED, () => {
+            console.log('✅ HLS manifest parsed, starting playback');
+            videoRef.current?.play();
+            setIsConnected(true);
+          });
+          
+          hls.on((window as any).Hls.Events.ERROR, (event: any, data: any) => {
+            console.log(`❌ HLS error: ${data.type} - ${data.details}`);
+            if (data.fatal) {
+              console.log('❌ Fatal HLS error, trying WebRTC fallback');
+              connectWebRTC();
+            }
+          });
+        } else {
+          console.log('❌ HLS.js not supported, trying WebRTC');
+          connectWebRTC();
+        }
+      }
+    };
+
+    // Try HLS first, then WebRTC as fallback
+    tryHLSFirst().then((hlsSuccess) => {
+      if (!hlsSuccess) {
+        console.log('🎯 HLS failed, trying WebRTC...');
+        connectWebRTC();
+      }
+    });
+
     const connectWebRTC = async () => {
       if (isConnecting || isConnected) {
         console.log('❌ Skipping connection - already connecting or connected');

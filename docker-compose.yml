@@ -1,9 +1,13 @@
 version: '3.8'
 
+networks:
+  restreamer-network:
+    driver: bridge
+
 services:
   # Database
   postgres:
-    image: postgres:16-alpine
+    image: postgres:15-alpine
     environment:
       POSTGRES_DB: custom_restreamer
       POSTGRES_USER: postgres
@@ -12,6 +16,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    networks:
+      - restreamer-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -33,6 +39,8 @@ services:
     environment:
       - SRS_LOG_LEVEL=info
       - CANDIDATE=${SRS_CANDIDATE:-127.0.0.1}
+    networks:
+      - restreamer-network
     command: ["./objs/srs", "-c", "conf/srs-minimal.conf"]
 
   # Backend API
@@ -50,6 +58,8 @@ services:
       PUBLIC_HLS_URL: https://hive.restreamer.website/hls
     ports:
       - "3001:3001"
+    networks:
+      - restreamer-network
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,6 +75,8 @@ services:
       NEXT_PUBLIC_SRS_URL: ${NEXT_PUBLIC_SRS_URL:-https://hive.restreamer.website}
     ports:
       - "3000:3000"
+    networks:
+      - restreamer-network
     depends_on:
       - backend
 
@@ -75,6 +87,8 @@ services:
       dockerfile: Dockerfile.simple
     ports:
       - "80:80"
+    networks:
+      - restreamer-network
     depends_on:
       - frontend
       - backend

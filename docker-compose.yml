@@ -91,6 +91,7 @@ services:
     depends_on:
       - frontend
       - backend
+      - srs
 
 volumes:
   postgres_data:

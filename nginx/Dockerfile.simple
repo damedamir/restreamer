@@ -17,4 +17,4 @@ RUN chmod +x /usr/local/bin/generate-ssl.sh
 EXPOSE 80 443
 
 # Generate SSL certificates and start nginx
-CMD ["sh", "-c", "/usr/local/bin/generate-ssl.sh && nginx -g 'daemon off;'"]
+CMD ["sh", "-c", "chmod +x /usr/local/bin/generate-ssl.sh && /usr/local/bin/generate-ssl.sh && nginx -g 'daemon off;'"]

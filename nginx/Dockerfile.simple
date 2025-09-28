@@ -13,4 +13,5 @@ RUN mkdir -p /var/www/hls /etc/nginx/ssl
 EXPOSE 80 443
 
 # Generate SSL certificates and start nginx
-CMD ["sh", "-c", "openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/hive.restreamer.website.key -out /etc/nginx/ssl/hive.restreamer.website.crt -subj '/C=US/ST=State/L=City/O=Organization/CN=hive.restreamer.website' && nginx -g 'daemon off;'"]
+CMD ["nginx", "-g", "daemon off;"]
+

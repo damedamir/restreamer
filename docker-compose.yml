@@ -1,6 +1,4 @@
-networks:
-  restreamer-network:
-    driver: bridge
+version: '3.8'
 
 services:
   # Database
@@ -12,8 +10,8 @@ services:
       POSTGRES_PASSWORD: password
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # ports: # <-- REMOVED: No need to expose the database to the internet.
+    #   - "5432:5432"
     networks:
       - restreamer-network
     healthcheck:
@@ -21,25 +19,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  # SRS (Simple Realtime Server) - Better than nginx-rtmp
-  srs:
-    image: ossrs/srs:5
-    ports:
-      - "1935:1935"  # RTMP
-      - "8000:8000"  # WebRTC
-      - "1985:1985"  # HTTP API
-      - "8080:8080"  # HTTP
-    volumes:
-      - ./nginx/srs-minimal.conf:/usr/local/srs/conf/srs-minimal.conf
-      - srs_hls:/var/www/hls
-      - srs_dvr:/var/www/dvr
-    environment:
-      - SRS_LOG_LEVEL=info
-      - CANDIDATE=${SRS_CANDIDATE:-127.0.0.1}
-    networks:
-      - restreamer-network
-    command: ["./objs/srs", "-c", "conf/srs-minimal.conf"]
+    restart: always
 
   # Backend API
   backend:
@@ -54,13 +34,14 @@ services:
       WEBHOOK_SECRET: your-secret-key
       JWT_SECRET: your-jwt-secret
       PUBLIC_HLS_URL: https://hive.restreamer.website/hls
-    ports:
-      - "3001:3001"
+    # ports: # <-- REMOVED: No need to expose the backend API directly.
+    #   - "3001:3001"
     networks:
       - restreamer-network
     depends_on:
       postgres:
         condition: service_healthy
+    restart: always
 
   # Frontend
   frontend:
@@ -71,29 +52,59 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://hive.restreamer.website/api}
       NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-wss://hive.restreamer.website/ws}
       NEXT_PUBLIC_SRS_URL: ${NEXT_PUBLIC_SRS_URL:-https://hive.restreamer.website}
-    ports:
-      - "3000:3000"
+    # ports: # <-- REMOVED: No need to expose the frontend directly.
+    #   - "3000:3000"
     networks:
       - restreamer-network
     depends_on:
       - backend
+    restart: always
 
-  # Nginx (HTTP reverse proxy for testing)
+  # SRS (Simple Realtime Server)
+  srs:
+    image: ossrs/srs:5
+    ports:
+      - "1935:1935"  # RTMP
+      - "8000:8000/udp" # WebRTC over UDP
+    # Removed SRS HTTP/API ports, as they should be accessed via the Nginx proxy.
+    networks:
+      - restreamer-network
+    restart: always
+
+  # Nginx Reverse Proxy
   nginx:
     build:
       context: ./nginx
       dockerfile: Dockerfile.simple
     ports:
       - "80:80"
-      - "443:443"  # HTTPS port
+      - "443:443"
+    volumes:
+      - ./nginx/sites:/etc/nginx/conf.d
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro # <-- ADDED: Shared volume for Certbot challenges.
     networks:
       - restreamer-network
     depends_on:
       - frontend
       - backend
       - srs
+    restart: always
 
+  # Certbot for SSL
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:rw # <-- ADDED: Certbot needs read-write access.
+
+# Define top-level volumes and networks
 volumes:
   postgres_data:
   srs_hls:
   srs_dvr:
+
+networks: # <-- MOVED: This block must be at the bottom.
+  restreamer-network:
+    driver: bridge

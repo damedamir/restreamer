@@ -4,6 +4,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Build outputs
+dist/
+.next/
+out/
+build/
+
 # Environment variables
 .env
 .env.local
@@ -11,18 +17,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
-# Build outputs
-build/
-.next/
-out/
-
-# Database
-*.db
-*.sqlite
-
 # Logs
-logs/
 *.log
+logs/
 
 # Runtime data
 pids/
@@ -79,29 +76,42 @@ jspm_packages/
 # TernJS port file
 .tern-port
 
-# Stores VSCode versions used for testing VSCode extensions
-.vscode-test
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# IDE
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# OS
-.DS_Store
-Thumbs.db
+# Temporary files
+*.tmp
+*.temp
 
-# Docker
-.dockerignore
+# Database files
+*.db
+*.sqlite
+*.sqlite3
 
-# HLS files
-hls/
-*.m3u8
+# SSL certificates (generated at runtime)
+ssl/
+*.crt
+*.key
+*.pem
 
-# TypeScript build files (but not source files)
-*.js.map
-*.d.ts
+# Docker volumes
+postgres_data/
+srs_hls/
+srs_dvr/
 
-# Prisma
-prisma/migrations/
+# Backup files
+*.backup
+*.bak

@@ -83,6 +83,7 @@ services:
       dockerfile: Dockerfile.simple
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/sites:/etc/nginx/conf.d
       - /etc/letsencrypt:/etc/letsencrypt:ro

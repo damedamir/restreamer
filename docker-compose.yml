@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Database
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     environment:
       POSTGRES_DB: custom_restreamer
       POSTGRES_USER: postgres

@@ -13,6 +13,7 @@ export const sendStreamStatusUpdate = (rtmpKey: string, isLive: boolean, viewers
 router.get('/:rtmpKey', async (req, res) => {
   try {
     const { rtmpKey } = req.params;
+    console.log(`🔍 Stream status API called for RTMP key: ${rtmpKey}`);
 
     // Find the RTMP configuration
     const rtmpConfig = await prisma.rtmpConfiguration.findUnique({
@@ -23,12 +24,23 @@ router.get('/:rtmpKey', async (req, res) => {
     });
 
     if (!rtmpConfig) {
+      console.log(`❌ RTMP configuration not found for key: ${rtmpKey}`);
       return res.status(404).json({ error: 'Stream configuration not found' });
     }
 
+    console.log(`✅ RTMP configuration found:`, {
+      id: rtmpConfig.id,
+      name: rtmpConfig.name,
+      rtmpKey: rtmpConfig.rtmpKey
+    });
+
     // Check SRS for stream status
+    console.log(`🔍 Calling checkSRSStreamStatus for: ${rtmpKey}`);
     const isLive = await checkSRSStreamStatus(rtmpKey);
+    console.log(`🔍 SRS check result - isLive: ${isLive}`);
+    
     const viewers = isLive ? await getSRSViewerCount(rtmpKey) : 0;
+    console.log(`🔍 Viewer count: ${viewers}`);
 
     // Update or create stream status record - temporarily disabled due to foreign key constraint issues
     // try {

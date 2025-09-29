@@ -67,22 +67,27 @@ router.get('/:rtmpKey', async (req, res) => {
 // Helper function to check SRS stream status
 async function checkSRSStreamStatus(rtmpKey: string): Promise<boolean> {
   try {
+    console.log(`🔍 Checking SRS stream status for: ${rtmpKey}`);
     const response = await axios.get('http://srs:1985/api/v1/streams/');
+    console.log(`🔍 SRS API response:`, response.data);
+    
     const streams = response.data.streams || [];
+    console.log(`🔍 Available streams:`, streams);
     
     // Check if our stream key is in the active streams AND is actually publishing
     const stream = streams.find((s: any) => s.name === rtmpKey);
     const isActive = stream ? stream.publish?.active === true : false;
     
-    console.log(`SRS Stream check for ${rtmpKey}:`, {
+    console.log(`🔍 SRS Stream check for ${rtmpKey}:`, {
       streamFound: !!stream,
       publishActive: stream?.publish?.active,
-      isActive
+      isActive,
+      allStreams: streams.map((s: any) => ({ name: s.name, publish: s.publish }))
     });
     
     return isActive;
   } catch (error) {
-    console.error('Error checking SRS stream status:', error);
+    console.error('❌ Error checking SRS stream status:', error);
     return false;
   }
 }

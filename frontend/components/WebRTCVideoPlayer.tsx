@@ -59,6 +59,22 @@ export default function WebRTCVideoPlayer({
       return;
     }
     
+    // Check if stream is actually live before attempting WebRTC
+    try {
+      const streamName = rtmpKey.replace(/\$/g, '');
+      const hlsUrl = `https://hive.restreamer.website/live/${streamName}.m3u8`;
+      const response = await fetch(hlsUrl);
+      if (!response.ok) {
+        console.log('❌ Stream not live yet, skipping WebRTC connection');
+        setConnectionError('Stream is not live yet');
+        return;
+      }
+    } catch (error) {
+      console.log('❌ Could not verify stream status, skipping WebRTC connection');
+      setConnectionError('Could not verify stream status');
+      return;
+    }
+    
     console.log(`🎯 Starting WebRTC connection attempt ${retryCount.current + 1}/${maxRetries}...`);
     connectionAttempted.current = true;
     setIsConnecting(true);
@@ -265,6 +281,8 @@ export default function WebRTCVideoPlayer({
           }
           return true;
         }
+      } else {
+        console.log(`❌ HLS manifest not found (${response.status}), stream may not be live yet`);
       }
     } catch (error) {
       console.log('❌ HLS failed, falling back to WebRTC:', error);
@@ -350,6 +368,11 @@ export default function WebRTCVideoPlayer({
         <div className="text-center">
           <div className="text-red-500 mb-2">⚠️</div>
           <div>{connectionError}</div>
+          {connectionError.includes('not live') && (
+            <div className="text-gray-400 text-sm mt-2">
+              The stream will appear here when it goes live
+            </div>
+          )}
         </div>
       </div>
     );

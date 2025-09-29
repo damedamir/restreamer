@@ -316,12 +316,25 @@ export default function WebRTCVideoPlayer({
         lowLatencyMode: true,
         // Configure error recovery
         maxLoadingDelay: 4,
-        maxBufferHole: 0.5,
+        maxBufferHole: 0.1, // Smaller buffer hole tolerance
         // Enable live backoff
         liveBackBufferLength: 0,
         // Add delay to prevent race conditions
         startLevel: -1,
-        capLevelToPlayerSize: true
+        capLevelToPlayerSize: true,
+        // Fix buffering issues
+        maxBufferSize: 60 * 1000 * 1000, // 60MB
+        maxBufferHole: 0.1,
+        maxSeekHole: 2,
+        seekHoleNudgeDuration: 0.1,
+        seekHoleNudgeOffset: 0.1,
+        // Better error recovery
+        fragLoadingTimeOut: 20000,
+        manifestLoadingTimeOut: 10000,
+        levelLoadingTimeOut: 10000,
+        // Disable problematic features
+        enableWorker: false,
+        enableSoftwareAES: true
       });
       
       // Store HLS instance before loading
@@ -371,6 +384,21 @@ export default function WebRTCVideoPlayer({
               console.log('❌ Fatal HLS error, trying WebRTC fallback');
               hls.destroy();
               connectWebRTC();
+              break;
+          }
+        } else {
+          // Handle non-fatal errors (like bufferStalledError, bufferSeekOverHole)
+          switch (data.details) {
+            case 'bufferStalledError':
+              console.log('⚠️ Buffer stalled, trying to recover...');
+              hls.startLoad();
+              break;
+            case 'bufferSeekOverHole':
+              console.log('⚠️ Buffer seek over hole, trying to recover...');
+              hls.startLoad();
+              break;
+            default:
+              console.log(`⚠️ Non-fatal HLS error: ${data.details}`);
               break;
           }
         }

@@ -62,7 +62,7 @@ export default function WebRTCVideoPlayer({
     // Check if stream is actually live before attempting WebRTC
     try {
       const streamName = rtmpKey.replace(/\$/g, '');
-      const hlsUrl = `https://hive.restreamer.website/live/${streamName}.m3u8`;
+      const hlsUrl = `https://hive.restreamer.website/hls/${streamName}.m3u8`;
       const response = await fetch(hlsUrl);
       if (!response.ok) {
         console.log('❌ Stream not live yet, skipping WebRTC connection');
@@ -254,7 +254,7 @@ export default function WebRTCVideoPlayer({
     console.log('🎯 Trying HLS streaming first...');
     try {
       const streamName = rtmpKey.replace(/\$/g, ''); // Remove $ character
-      const hlsUrl = `https://hive.restreamer.website/live/${streamName}.m3u8`;
+      const hlsUrl = `https://hive.restreamer.website/hls/${streamName}.m3u8`;
       
       console.log(`📺 Testing HLS URL: ${hlsUrl}`);
       
@@ -293,7 +293,7 @@ export default function WebRTCVideoPlayer({
   const startHLSPlayback = useCallback((streamName: string) => {
     if (isDestroyed.current || !videoRef.current) return;
     
-    const hlsUrl = `https://hive.restreamer.website/live/${streamName}.m3u8`;
+    const hlsUrl = `https://hive.restreamer.website/hls/${streamName}.m3u8`;
     
     if ((window as any).Hls && (window as any).Hls.isSupported()) {
       const hls = new (window as any).Hls();

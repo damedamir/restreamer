@@ -89,7 +89,11 @@ export default function BrandedStreamPage() {
   useEffect(() => {
     console.log('🔍 Stream Status Debug:', {
       rtmpKey: brandedUrl?.rtmpConfig?.rtmpKey,
-      streamStatus,
+      streamStatus: {
+        isLive: streamStatus.isLive,
+        viewers: streamStatus.viewers,
+        lastChecked: streamStatus.lastChecked
+      },
       hasRtmpConfig: !!brandedUrl?.rtmpConfig
     });
   }, [streamStatus, brandedUrl]);

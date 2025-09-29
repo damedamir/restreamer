@@ -30,25 +30,35 @@ export function useStreamStatus({ rtmpKey, onStatusChange }: UseStreamStatusProp
     
     try {
       const apiBaseUrl = "https://hive.restreamer.website/api";
+      const url = `${apiBaseUrl}/stream-status/${rtmpKeyRef.current}`;
       
-      const response = await fetch(`${apiBaseUrl}/stream-status/${rtmpKeyRef.current}`);
+      console.log('🔍 Checking stream status:', { url, rtmpKey: rtmpKeyRef.current });
+      
+      const response = await fetch(url);
       
       if (!isMountedRef.current) return; // Check again after async operation
       
       if (response.ok) {
         const data = await response.json();
+        console.log('🔍 Stream status API response:', data);
+        
         const newStatus: StreamStatus = {
           isLive: data.isLive,
           viewers: data.viewers || 0,
           lastChecked: new Date(data.lastChecked)
         };
         
+        console.log('🔍 New stream status:', newStatus);
+        
         setStreamStatus(prevStatus => {
+          console.log('🔍 Previous status:', prevStatus);
           // Only update if status actually changed to prevent unnecessary re-renders
           if (prevStatus.isLive !== newStatus.isLive || 
               prevStatus.viewers !== newStatus.viewers) {
+            console.log('🔍 Status changed, updating...');
             return newStatus;
           }
+          console.log('🔍 Status unchanged, keeping previous');
           return prevStatus;
         });
         

@@ -293,6 +293,13 @@ export default function WebRTCVideoPlayer({
   const startHLSPlayback = useCallback((streamName: string) => {
     if (isDestroyed.current || !videoRef.current) return;
     
+    // Clean up existing HLS instance
+    if ((videoRef.current as any).hls) {
+      console.log('🧹 Cleaning up existing HLS instance');
+      (videoRef.current as any).hls.destroy();
+      (videoRef.current as any).hls = null;
+    }
+    
     const hlsUrl = `https://hive.restreamer.website/hls/${streamName}.m3u8`;
     
     if ((window as any).Hls && (window as any).Hls.isSupported()) {
@@ -311,8 +318,14 @@ export default function WebRTCVideoPlayer({
         maxLoadingDelay: 4,
         maxBufferHole: 0.5,
         // Enable live backoff
-        liveBackBufferLength: 0
+        liveBackBufferLength: 0,
+        // Add delay to prevent race conditions
+        startLevel: -1,
+        capLevelToPlayerSize: true
       });
+      
+      // Store HLS instance before loading
+      (videoRef.current as any).hls = hls;
       
       hls.loadSource(hlsUrl);
       hls.attachMedia(videoRef.current);
@@ -363,8 +376,6 @@ export default function WebRTCVideoPlayer({
         }
       });
       
-      // Store HLS instance for cleanup
-      (videoRef.current as any).hls = hls;
     } else {
       console.log('❌ HLS.js not supported, trying WebRTC');
       connectWebRTC();
@@ -444,7 +455,6 @@ export default function WebRTCVideoPlayer({
   return (
     <div className="relative bg-black rounded-lg overflow-hidden">
       <video
-        key={`${rtmpKey}-${isLive}`} // Force re-mount when stream changes
         ref={videoRef}
         autoPlay
         playsInline

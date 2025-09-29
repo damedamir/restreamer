@@ -339,15 +339,14 @@ export default function WebRTCVideoPlayer({
       // Store HLS instance before loading
       (videoRef.current as any).hls = hls;
       
-      // Load source first, then attach media
-      hls.loadSource(hlsUrl);
-      
-      // Wait a bit before attaching to ensure video element is ready
-      setTimeout(() => {
-        if (videoRef.current && !isDestroyed.current) {
-          hls.attachMedia(videoRef.current);
-        }
-      }, 100);
+      // Attach media first, then load source
+      if (videoRef.current) {
+        hls.attachMedia(videoRef.current);
+        hls.loadSource(hlsUrl);
+      } else {
+        console.error('❌ Video element not available for HLS attachment');
+        return;
+      }
       
       hls.on((window as any).Hls.Events.MANIFEST_PARSED, () => {
         if (isDestroyed.current) return;
@@ -359,8 +358,9 @@ export default function WebRTCVideoPlayer({
           duration: videoRef.current?.duration
         });
         
-        // Try to play with proper error handling
-        if (videoRef.current) {
+        // Check if video element is ready
+        if (videoRef.current && videoRef.current.readyState >= 1) {
+          console.log('✅ Video element is ready, starting playback');
           const playPromise = videoRef.current.play();
           if (playPromise !== undefined) {
             playPromise.then(() => {
@@ -369,11 +369,30 @@ export default function WebRTCVideoPlayer({
               onCanPlay?.();
             }).catch((error) => {
               console.log('⚠️ Autoplay blocked by browser:', error);
-              // Don't treat autoplay failure as a fatal error
               setIsConnected(true);
               onCanPlay?.();
             });
           }
+        } else {
+          console.log('⚠️ Video element not ready, waiting...');
+          // Wait for video element to be ready
+          const checkReady = () => {
+            if (videoRef.current && videoRef.current.readyState >= 1) {
+              console.log('✅ Video element ready, starting playback');
+              videoRef.current.play().then(() => {
+                console.log('✅ Video playback started successfully');
+                setIsConnected(true);
+                onCanPlay?.();
+              }).catch((error) => {
+                console.log('⚠️ Autoplay blocked by browser:', error);
+                setIsConnected(true);
+                onCanPlay?.();
+              });
+            } else {
+              setTimeout(checkReady, 100);
+            }
+          };
+          checkReady();
         }
       });
       

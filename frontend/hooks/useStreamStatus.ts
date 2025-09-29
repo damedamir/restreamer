@@ -29,7 +29,7 @@ export function useStreamStatus({ rtmpKey, onStatusChange }: UseStreamStatusProp
     if (!isMountedRef.current || !rtmpKeyRef.current) return;
     
     try {
-      const apiBaseUrl = "https://hive.restreamer.website/api";
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "https://hive.restreamer.website/api";
       const url = `${apiBaseUrl}/stream-status/${rtmpKeyRef.current}`;
       
       console.log('🔍 Checking stream status:', { url, rtmpKey: rtmpKeyRef.current });

@@ -54,6 +54,7 @@ router.get('/', authenticateToken, async (req, res) => {
 router.get('/slug/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
+    console.log(`🔍 Branded URL API called for slug: ${slug}`);
     
     const brandedUrl = await prisma.brandedUrl.findUnique({
       where: { slug },
@@ -74,8 +75,11 @@ router.get('/slug/:slug', async (req, res) => {
     });
 
     if (!brandedUrl) {
+      console.log(`❌ Branded URL not found for slug: ${slug}`);
       return res.status(404).json({ error: 'Branded URL not found' });
     }
+
+    console.log(`✅ Branded URL found:`, brandedUrl);
 
     // Increment view count
     await prisma.brandedUrl.update({

@@ -29,10 +29,28 @@ export function useStreamStatus({ rtmpKey, onStatusChange }: UseStreamStatusProp
     if (!isMountedRef.current || !rtmpKeyRef.current) return;
     
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "https://hive.restreamer.website/api";
+      // Ensure we always have the correct API base URL
+      let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+      
+      // If not set or if it doesn't end with /api, construct it properly
+      if (!apiBaseUrl || !apiBaseUrl.endsWith('/api')) {
+        if (typeof window !== 'undefined') {
+          // Client-side: use current domain
+          apiBaseUrl = `${window.location.protocol}//${window.location.host}/api`;
+        } else {
+          // Server-side fallback
+          apiBaseUrl = 'https://hive.restreamer.website/api';
+        }
+      }
+      
       const url = `${apiBaseUrl}/stream-status/${rtmpKeyRef.current}`;
       
-      console.log('🔍 Checking stream status:', { url, rtmpKey: rtmpKeyRef.current });
+      console.log('🔍 Checking stream status:', { 
+        url, 
+        rtmpKey: rtmpKeyRef.current,
+        envVar: process.env.NEXT_PUBLIC_API_URL,
+        constructedApiBaseUrl: apiBaseUrl
+      });
       
       const response = await fetch(url);
       

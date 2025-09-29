@@ -316,7 +316,6 @@ export default function WebRTCVideoPlayer({
         lowLatencyMode: true,
         // Configure error recovery
         maxLoadingDelay: 4,
-        maxBufferHole: 0.1, // Smaller buffer hole tolerance
         // Enable live backoff
         liveBackBufferLength: 0,
         // Add delay to prevent race conditions
@@ -324,7 +323,7 @@ export default function WebRTCVideoPlayer({
         capLevelToPlayerSize: true,
         // Fix buffering issues
         maxBufferSize: 60 * 1000 * 1000, // 60MB
-        maxBufferHole: 0.1,
+        maxBufferHole: 0.1, // Smaller buffer hole tolerance
         maxSeekHole: 2,
         seekHoleNudgeDuration: 0.1,
         seekHoleNudgeOffset: 0.1,

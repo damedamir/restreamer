@@ -339,12 +339,25 @@ export default function WebRTCVideoPlayer({
       // Store HLS instance before loading
       (videoRef.current as any).hls = hls;
       
+      // Load source first, then attach media
       hls.loadSource(hlsUrl);
-      hls.attachMedia(videoRef.current);
+      
+      // Wait a bit before attaching to ensure video element is ready
+      setTimeout(() => {
+        if (videoRef.current && !isDestroyed.current) {
+          hls.attachMedia(videoRef.current);
+        }
+      }, 100);
       
       hls.on((window as any).Hls.Events.MANIFEST_PARSED, () => {
         if (isDestroyed.current) return;
         console.log('✅ HLS manifest parsed, starting playback');
+        console.log('📊 Video element state:', {
+          readyState: videoRef.current?.readyState,
+          paused: videoRef.current?.paused,
+          currentTime: videoRef.current?.currentTime,
+          duration: videoRef.current?.duration
+        });
         
         // Try to play with proper error handling
         if (videoRef.current) {

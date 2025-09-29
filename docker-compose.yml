@@ -71,7 +71,11 @@ services:
     ports:
       - "1935:1935"  # RTMP
       - "8000:8000/udp" # WebRTC over UDP
-    # Removed SRS HTTP/API ports, as they should be accessed via the Nginx proxy.
+    volumes:
+      - ./nginx/srs-minimal.conf:/usr/local/srs/conf/srs.conf:ro
+      - srs_hls:/var/www/hls
+    environment:
+      - CANDIDATE=192.168.1.24
     networks:
       - restreamer-network
     restart: always
@@ -88,6 +92,7 @@ services:
       - ./nginx/sites:/etc/nginx/conf.d
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - ./certbot/www:/var/www/certbot:ro # <-- ADDED: Shared volume for Certbot challenges.
+      - srs_hls:/var/www/hls:ro # <-- ADDED: SRS HLS files
     networks:
       - restreamer-network
     depends_on:

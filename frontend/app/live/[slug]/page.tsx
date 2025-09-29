@@ -85,6 +85,15 @@ export default function BrandedStreamPage() {
     rtmpKey: brandedUrl?.rtmpConfig?.rtmpKey || '' 
   });
 
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 Stream Status Debug:', {
+      rtmpKey: brandedUrl?.rtmpConfig?.rtmpKey,
+      streamStatus,
+      hasRtmpConfig: !!brandedUrl?.rtmpConfig
+    });
+  }, [streamStatus, brandedUrl]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -156,8 +165,22 @@ export default function BrandedStreamPage() {
                 <div className="flex items-center justify-center h-full bg-gray-800">
                   <div className="text-center text-white">
                     <div className="text-6xl mb-4">📺</div>
-                    <div className="text-xl mb-2">Stream is offline</div>
-                    <div className="text-gray-400">The stream will appear here when it goes live</div>
+                    <div className="text-xl mb-2">
+                      {streamStatus.isLive ? 'Stream is starting...' : 'Stream is offline'}
+                    </div>
+                    <div className="text-gray-400">
+                      {streamStatus.isLive 
+                        ? 'The stream will appear here shortly' 
+                        : 'The stream will appear here when it goes live'
+                      }
+                    </div>
+                    {streamStatus.isLive && (
+                      <div className="text-sm text-gray-500 mt-2">
+                        Status: {streamStatus.isLive ? 'Live' : 'Offline'} | 
+                        Viewers: {streamStatus.viewers} | 
+                        Last checked: {streamStatus.lastChecked.toLocaleTimeString()}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

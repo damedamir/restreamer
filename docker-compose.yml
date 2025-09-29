@@ -68,6 +68,7 @@ services:
   # SRS (Simple Realtime Server)
   srs:
     image: ossrs/srs:5
+    command: ["./objs/srs", "-c", "conf/srs.conf"]
     ports:
       - "1935:1935"  # RTMP
       - "8000:8000/udp" # WebRTC over UDP

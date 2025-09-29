@@ -296,7 +296,24 @@ export default function WebRTCVideoPlayer({
     const hlsUrl = `https://hive.restreamer.website/hls/${streamName}.m3u8`;
     
     if ((window as any).Hls && (window as any).Hls.isSupported()) {
-      const hls = new (window as any).Hls();
+      const hls = new (window as any).Hls({
+        // Configure HLS.js for live streaming
+        liveSyncDurationCount: 3,
+        liveMaxLatencyDurationCount: 5,
+        liveDurationInfinity: true,
+        highBufferWatchdogPeriod: 2,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        backBufferLength: 90,
+        // Enable low latency mode
+        lowLatencyMode: true,
+        // Configure error recovery
+        maxLoadingDelay: 4,
+        maxBufferHole: 0.5,
+        // Enable live backoff
+        liveBackBufferLength: 0
+      });
+      
       hls.loadSource(hlsUrl);
       hls.attachMedia(videoRef.current);
       
@@ -305,21 +322,40 @@ export default function WebRTCVideoPlayer({
         console.log('✅ HLS manifest parsed, starting playback');
         videoRef.current?.play();
         setIsConnected(true);
+        onCanPlay?.();
       });
       
       hls.on((window as any).Hls.Events.ERROR, (event: any, data: any) => {
         if (isDestroyed.current) return;
         console.log(`❌ HLS error: ${data.type} - ${data.details}`);
+        
+        // Handle different error types
         if (data.fatal) {
-          console.log('❌ Fatal HLS error, trying WebRTC fallback');
-          connectWebRTC();
+          switch (data.type) {
+            case (window as any).Hls.ErrorTypes.NETWORK_ERROR:
+              console.log('❌ Network error, trying to recover...');
+              hls.startLoad();
+              break;
+            case (window as any).Hls.ErrorTypes.MEDIA_ERROR:
+              console.log('❌ Media error, trying to recover...');
+              hls.recoverMediaError();
+              break;
+            default:
+              console.log('❌ Fatal HLS error, trying WebRTC fallback');
+              hls.destroy();
+              connectWebRTC();
+              break;
+          }
         }
       });
+      
+      // Store HLS instance for cleanup
+      (videoRef.current as any).hls = hls;
     } else {
       console.log('❌ HLS.js not supported, trying WebRTC');
       connectWebRTC();
     }
-  }, [connectWebRTC]);
+  }, [connectWebRTC, onCanPlay]);
 
   useEffect(() => {
     if (isDestroyed.current) return;
@@ -347,6 +383,11 @@ export default function WebRTCVideoPlayer({
       if (pcRef.current) {
         pcRef.current.close();
         pcRef.current = null;
+      }
+      // Cleanup HLS instance
+      if (videoRef.current && (videoRef.current as any).hls) {
+        (videoRef.current as any).hls.destroy();
+        (videoRef.current as any).hls = null;
       }
     };
   }, [rtmpKey, isLive, tryHLSFirst, connectWebRTC]);
@@ -381,6 +422,7 @@ export default function WebRTCVideoPlayer({
   return (
     <div className="relative bg-black rounded-lg overflow-hidden">
       <video
+        key={`${rtmpKey}-${isLive}`} // Force re-mount when stream changes
         ref={videoRef}
         autoPlay
         playsInline

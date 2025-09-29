@@ -350,7 +350,7 @@ export default function WebRTCVideoPlayer({
       
       hls.on((window as any).Hls.Events.MANIFEST_PARSED, () => {
         if (isDestroyed.current) return;
-        console.log('✅ HLS manifest parsed, starting playback');
+        console.log('✅ HLS manifest parsed, waiting for first segment...');
         console.log('📊 Video element state:', {
           readyState: videoRef.current?.readyState,
           paused: videoRef.current?.paused,
@@ -358,41 +358,32 @@ export default function WebRTCVideoPlayer({
           duration: videoRef.current?.duration
         });
         
-        // Check if video element is ready
+        // Don't try to play yet - wait for first segment
+        setIsConnected(true);
+        onCanPlay?.();
+      });
+      
+      // Wait for first segment to be loaded
+      hls.on((window as any).Hls.Events.FRAG_LOADED, () => {
+        if (isDestroyed.current) return;
+        console.log('✅ First HLS segment loaded, starting playback');
+        console.log('📊 Video element state after segment:', {
+          readyState: videoRef.current?.readyState,
+          paused: videoRef.current?.paused,
+          currentTime: videoRef.current?.currentTime,
+          duration: videoRef.current?.duration
+        });
+        
+        // Now try to play
         if (videoRef.current && videoRef.current.readyState >= 1) {
-          console.log('✅ Video element is ready, starting playback');
           const playPromise = videoRef.current.play();
           if (playPromise !== undefined) {
             playPromise.then(() => {
               console.log('✅ Video playback started successfully');
-              setIsConnected(true);
-              onCanPlay?.();
             }).catch((error) => {
               console.log('⚠️ Autoplay blocked by browser:', error);
-              setIsConnected(true);
-              onCanPlay?.();
             });
           }
-        } else {
-          console.log('⚠️ Video element not ready, waiting...');
-          // Wait for video element to be ready
-          const checkReady = () => {
-            if (videoRef.current && videoRef.current.readyState >= 1) {
-              console.log('✅ Video element ready, starting playback');
-              videoRef.current.play().then(() => {
-                console.log('✅ Video playback started successfully');
-                setIsConnected(true);
-                onCanPlay?.();
-              }).catch((error) => {
-                console.log('⚠️ Autoplay blocked by browser:', error);
-                setIsConnected(true);
-                onCanPlay?.();
-              });
-            } else {
-              setTimeout(checkReady, 100);
-            }
-          };
-          checkReady();
         }
       });
       

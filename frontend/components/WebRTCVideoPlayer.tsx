@@ -320,9 +320,23 @@ export default function WebRTCVideoPlayer({
       hls.on((window as any).Hls.Events.MANIFEST_PARSED, () => {
         if (isDestroyed.current) return;
         console.log('✅ HLS manifest parsed, starting playback');
-        videoRef.current?.play();
-        setIsConnected(true);
-        onCanPlay?.();
+        
+        // Try to play with proper error handling
+        if (videoRef.current) {
+          const playPromise = videoRef.current.play();
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              console.log('✅ Video playback started successfully');
+              setIsConnected(true);
+              onCanPlay?.();
+            }).catch((error) => {
+              console.log('⚠️ Autoplay blocked by browser:', error);
+              // Don't treat autoplay failure as a fatal error
+              setIsConnected(true);
+              onCanPlay?.();
+            });
+          }
+        }
       });
       
       hls.on((window as any).Hls.Events.ERROR, (event: any, data: any) => {
@@ -419,6 +433,14 @@ export default function WebRTCVideoPlayer({
     );
   }
 
+  const handleVideoClick = useCallback(() => {
+    if (videoRef.current && videoRef.current.paused) {
+      videoRef.current.play().catch((error) => {
+        console.log('⚠️ Manual play failed:', error);
+      });
+    }
+  }, []);
+
   return (
     <div className="relative bg-black rounded-lg overflow-hidden">
       <video
@@ -427,8 +449,9 @@ export default function WebRTCVideoPlayer({
         autoPlay
         playsInline
         muted
-        className="w-full h-full"
+        className="w-full h-full cursor-pointer"
         onLoadStart={onLoadStart}
+        onClick={handleVideoClick}
         onError={(e) => {
           console.error('Video error:', e);
           setConnectionError('Video playback failed');
@@ -440,6 +463,14 @@ export default function WebRTCVideoPlayer({
           <div className="text-white text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
             <div>Connecting to stream...</div>
+          </div>
+        </div>
+      )}
+      {!isConnecting && isConnected && videoRef.current?.paused && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="text-white text-center">
+            <div className="text-6xl mb-4">▶️</div>
+            <div className="text-lg">Click to play</div>
           </div>
         </div>
       )}

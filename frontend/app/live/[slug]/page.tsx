@@ -38,13 +38,20 @@ export default function BrandedStreamPage() {
   // Get the correct API base URL
   const getApiBaseUrl = () => {
     if (typeof window !== 'undefined') {
+      console.log('🔍 Client-side API URL detection:', {
+        hostname: window.location.hostname,
+        isLocalhost: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
+        envVar: process.env.NEXT_PUBLIC_API_URL
+      });
       // Client-side: check if we're on localhost
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         return 'http://localhost:3001/api';
       }
     }
     // Server-side or production: use environment variable or fallback
-    return process.env.NEXT_PUBLIC_API_URL || 'https://hive.restreamer.website/api';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://hive.restreamer.website/api';
+    console.log('🔍 Using API URL:', apiUrl);
+    return apiUrl;
   };
 
   // Fetch branded URL configuration

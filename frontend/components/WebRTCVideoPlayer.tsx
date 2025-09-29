@@ -364,9 +364,9 @@ export default function WebRTCVideoPlayer({
       });
       
       // Wait for first segment to be loaded
-      hls.on((window as any).Hls.Events.FRAG_LOADED, () => {
+      hls.on((window as any).Hls.Events.FRAG_LOADED, (event: any, data: any) => {
         if (isDestroyed.current) return;
-        console.log('✅ First HLS segment loaded, starting playback');
+        console.log('✅ HLS segment loaded:', data.frag?.url);
         console.log('📊 Video element state after segment:', {
           readyState: videoRef.current?.readyState,
           paused: videoRef.current?.paused,
@@ -376,6 +376,7 @@ export default function WebRTCVideoPlayer({
         
         // Now try to play
         if (videoRef.current && videoRef.current.readyState >= 1) {
+          console.log('✅ Video element ready, starting playback');
           const playPromise = videoRef.current.play();
           if (playPromise !== undefined) {
             playPromise.then(() => {
@@ -384,7 +385,18 @@ export default function WebRTCVideoPlayer({
               console.log('⚠️ Autoplay blocked by browser:', error);
             });
           }
+        } else {
+          console.log('⚠️ Video element still not ready after segment load');
         }
+      });
+      
+      // Debug segment loading issues
+      hls.on((window as any).Hls.Events.FRAG_LOADING, (event: any, data: any) => {
+        console.log('🔄 Loading HLS segment:', data.frag?.url);
+      });
+      
+      hls.on((window as any).Hls.Events.FRAG_LOAD_ERROR, (event: any, data: any) => {
+        console.log('❌ HLS segment load error:', data.frag?.url, data.details);
       });
       
       hls.on((window as any).Hls.Events.ERROR, (event: any, data: any) => {
@@ -495,10 +507,30 @@ export default function WebRTCVideoPlayer({
   }
 
   const handleVideoClick = useCallback(() => {
-    if (videoRef.current && videoRef.current.paused) {
-      videoRef.current.play().catch((error) => {
-        console.log('⚠️ Manual play failed:', error);
-      });
+    console.log('🖱️ Video clicked, attempting to play...');
+    console.log('📊 Video element state on click:', {
+      readyState: videoRef.current?.readyState,
+      paused: videoRef.current?.paused,
+      currentTime: videoRef.current?.currentTime,
+      duration: videoRef.current?.duration,
+      src: videoRef.current?.src,
+      srcObject: videoRef.current?.srcObject
+    });
+    
+    if (videoRef.current) {
+      if (videoRef.current.paused) {
+        console.log('🎬 Video is paused, trying to play...');
+        videoRef.current.play().then(() => {
+          console.log('✅ Manual play successful');
+        }).catch((error) => {
+          console.log('❌ Manual play failed:', error);
+        });
+      } else {
+        console.log('⏸️ Video is playing, pausing...');
+        videoRef.current.pause();
+      }
+    } else {
+      console.log('❌ Video element not found');
     }
   }, []);
 
@@ -527,7 +559,10 @@ export default function WebRTCVideoPlayer({
         </div>
       )}
       {!isConnecting && isConnected && videoRef.current?.paused && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+        <div 
+          className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 cursor-pointer z-10"
+          onClick={handleVideoClick}
+        >
           <div className="text-white text-center">
             <div className="text-6xl mb-4">▶️</div>
             <div className="text-lg">Click to play</div>

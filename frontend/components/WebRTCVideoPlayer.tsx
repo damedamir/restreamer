@@ -27,11 +27,13 @@ export default function WebRTCVideoPlayer({
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isTabVisible, setIsTabVisible] = useState(true);
   const connectionAttempted = useRef(false);
   const retryCount = useRef(0);
   const maxRetries = 3;
   const isDestroyed = useRef(false);
   const hlsConnectionAttempted = useRef(false);
+  const healthCheckInterval = useRef<NodeJS.Timeout | null>(null);
 
   // Reset connection state when props change
   useEffect(() => {
@@ -418,6 +420,9 @@ export default function WebRTCVideoPlayer({
         // Don't try to play yet - wait for first segment
         setIsConnected(true);
         onCanPlay?.();
+        
+        // Start health check for HLS stream
+        startHLSHealthCheck();
       });
       
       // Wait for first segment to be loaded
@@ -703,6 +708,16 @@ export default function WebRTCVideoPlayer({
           type: data.type,
           details: data.details
         });
+        
+        // Try to recover from buffer stall
+        if (hlsInstanceRef.current) {
+          console.log('🔄 Attempting to recover from buffer stall...');
+          setTimeout(() => {
+            if (hlsInstanceRef.current && !isDestroyed.current) {
+              hlsInstanceRef.current.startLoad();
+            }
+          }, 1000);
+        }
       });
       
       hls.on((window as any).Hls.Events.BUFFER_SEEK_OVER_HOLE, (event: any, data: any) => {
@@ -711,6 +726,16 @@ export default function WebRTCVideoPlayer({
           type: data.type,
           details: data.details
         });
+        
+        // Try to recover from seek over hole
+        if (hlsInstanceRef.current) {
+          console.log('🔄 Attempting to recover from seek over hole...');
+          setTimeout(() => {
+            if (hlsInstanceRef.current && !isDestroyed.current) {
+              hlsInstanceRef.current.startLoad();
+            }
+          }, 500);
+        }
       });
       
       // 7. Level Switching Events
@@ -821,6 +846,9 @@ export default function WebRTCVideoPlayer({
         pcRef.current.close();
         pcRef.current = null;
       }
+      // Stop health check
+      stopHLSHealthCheck();
+      
       // Cleanup HLS instance
       if (hlsInstanceRef.current) {
         hlsInstanceRef.current.destroy();
@@ -832,10 +860,64 @@ export default function WebRTCVideoPlayer({
     };
   }, [rtmpKey, isLive]);
 
+  // Handle tab visibility changes to prevent HLS throttling
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const isVisible = !document.hidden;
+      console.log('👁️ Tab visibility changed:', isVisible ? 'visible' : 'hidden');
+      setIsTabVisible(isVisible);
+      
+      if (isVisible && hlsInstanceRef.current && videoRef.current) {
+        console.log('🔄 Tab became visible, checking HLS state...');
+        
+        // Check if video is paused due to tab being hidden
+        if (videoRef.current.paused && isPlaying) {
+          console.log('🎬 Video was paused due to tab being hidden, resuming...');
+          videoRef.current.play().then(() => {
+            console.log('✅ Video resumed after tab became visible');
+          }).catch((error) => {
+            console.log('❌ Failed to resume video:', error);
+          });
+        }
+        
+        // Restart HLS if it's stalled
+        if (hlsInstanceRef.current && hlsInstanceRef.current.media) {
+          console.log('🔄 Restarting HLS after tab became visible');
+          hlsInstanceRef.current.startLoad();
+        }
+      }
+    };
+
+    const handleFocus = () => {
+      console.log('🎯 Window focused');
+      if (hlsInstanceRef.current && videoRef.current && videoRef.current.paused && isPlaying) {
+        console.log('🎬 Resuming video after window focus');
+        videoRef.current.play().catch((error) => {
+          console.log('❌ Failed to resume video on focus:', error);
+        });
+      }
+    };
+
+    const handleBlur = () => {
+      console.log('👁️ Window blurred');
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [isPlaying]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       isDestroyed.current = true;
+      stopHLSHealthCheck();
       if (pcRef.current) {
         pcRef.current.close();
         pcRef.current = null;
@@ -845,7 +927,7 @@ export default function WebRTCVideoPlayer({
         hlsInstanceRef.current = null;
       }
     };
-  }, []);
+  }, [stopHLSHealthCheck]);
 
   if (connectionError) {
     return (
@@ -911,6 +993,59 @@ export default function WebRTCVideoPlayer({
       videoRef.current.muted = true;
       setIsMuted(true);
       console.log('✅ Video muted');
+    }
+  }, []);
+
+  const startHLSHealthCheck = useCallback(() => {
+    // Clear existing health check
+    if (healthCheckInterval.current) {
+      clearInterval(healthCheckInterval.current);
+    }
+
+    // Start new health check every 5 seconds
+    healthCheckInterval.current = setInterval(() => {
+      if (isDestroyed.current || !hlsInstanceRef.current || !videoRef.current) {
+        return;
+      }
+
+      const video = videoRef.current;
+      const hls = hlsInstanceRef.current;
+      
+      console.log('🏥 HLS Health Check:', {
+        readyState: video.readyState,
+        paused: video.paused,
+        currentTime: video.currentTime,
+        duration: video.duration,
+        isPlaying: isPlaying,
+        isTabVisible: isTabVisible
+      });
+
+      // Check if video is stuck (paused but should be playing)
+      if (video.paused && isPlaying && isTabVisible) {
+        console.log('⚠️ Video is paused but should be playing, attempting to resume...');
+        video.play().catch((error) => {
+          console.log('❌ Failed to resume video in health check:', error);
+        });
+      }
+
+      // Check if HLS is stalled and restart if needed
+      if (hls && hls.media && video.readyState < 2) {
+        console.log('⚠️ HLS appears stalled, restarting...');
+        hls.startLoad();
+      }
+
+      // Check if video duration is NaN (indicates no data)
+      if (isNaN(video.duration) && video.readyState >= 1) {
+        console.log('⚠️ Video has no duration, restarting HLS...');
+        hls.startLoad();
+      }
+    }, 5000);
+  }, [isPlaying, isTabVisible]);
+
+  const stopHLSHealthCheck = useCallback(() => {
+    if (healthCheckInterval.current) {
+      clearInterval(healthCheckInterval.current);
+      healthCheckInterval.current = null;
     }
   }, []);
 

@@ -913,6 +913,13 @@ export default function WebRTCVideoPlayer({
     };
   }, [isPlaying]);
 
+  const stopHLSHealthCheck = useCallback(() => {
+    if (healthCheckInterval.current) {
+      clearInterval(healthCheckInterval.current);
+      healthCheckInterval.current = null;
+    }
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -1041,13 +1048,6 @@ export default function WebRTCVideoPlayer({
       }
     }, 5000);
   }, [isPlaying, isTabVisible]);
-
-  const stopHLSHealthCheck = useCallback(() => {
-    if (healthCheckInterval.current) {
-      clearInterval(healthCheckInterval.current);
-      healthCheckInterval.current = null;
-    }
-  }, []);
 
   return (
     <div className="relative bg-black rounded-lg overflow-hidden">

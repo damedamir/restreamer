@@ -21,6 +21,7 @@ export default function WebRTCVideoPlayer({
 }: WebRTCVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
+  const hlsInstanceRef = useRef<any>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -293,10 +294,24 @@ export default function WebRTCVideoPlayer({
   const startHLSPlayback = useCallback((streamName: string) => {
     if (isDestroyed.current || !videoRef.current) return;
     
-    // Clean up existing HLS instance
-    if ((videoRef.current as any).hls) {
+    // Clean up existing HLS instance more carefully
+    if (hlsInstanceRef.current) {
       console.log('🧹 Cleaning up existing HLS instance');
-      (videoRef.current as any).hls.destroy();
+      const existingHls = hlsInstanceRef.current;
+      
+      // Detach media before destroying to prevent detachment events
+      if (existingHls.media) {
+        console.log('🔌 Detaching media from existing HLS instance');
+        existingHls.detachMedia();
+      }
+      
+      // Now destroy
+      existingHls.destroy();
+      hlsInstanceRef.current = null;
+    }
+    
+    // Also clean up from video element
+    if (videoRef.current && (videoRef.current as any).hls) {
       (videoRef.current as any).hls = null;
     }
     
@@ -347,6 +362,7 @@ export default function WebRTCVideoPlayer({
       });
       
       // Store HLS instance before loading
+      hlsInstanceRef.current = hls;
       (videoRef.current as any).hls = hls;
       
       // Attach media first, then load source
@@ -783,8 +799,11 @@ export default function WebRTCVideoPlayer({
         pcRef.current = null;
       }
       // Cleanup HLS instance
+      if (hlsInstanceRef.current) {
+        hlsInstanceRef.current.destroy();
+        hlsInstanceRef.current = null;
+      }
       if (videoRef.current && (videoRef.current as any).hls) {
-        (videoRef.current as any).hls.destroy();
         (videoRef.current as any).hls = null;
       }
     };
@@ -797,6 +816,10 @@ export default function WebRTCVideoPlayer({
       if (pcRef.current) {
         pcRef.current.close();
         pcRef.current = null;
+      }
+      if (hlsInstanceRef.current) {
+        hlsInstanceRef.current.destroy();
+        hlsInstanceRef.current = null;
       }
     };
   }, []);

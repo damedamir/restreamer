@@ -34,6 +34,8 @@ export default function WebRTCVideoPlayer({
   const isDestroyed = useRef(false);
   const hlsConnectionAttempted = useRef(false);
   const healthCheckInterval = useRef<NodeJS.Timeout | null>(null);
+  const keepAliveInterval = useRef<NodeJS.Timeout | null>(null);
+  const animationFrameId = useRef<number | null>(null);
 
   // Reset connection state when props change
   useEffect(() => {
@@ -423,6 +425,9 @@ export default function WebRTCVideoPlayer({
         
         // Start health check for HLS stream
         startHLSHealthCheck();
+        
+        // Start keep-alive mechanism to prevent browser throttling
+        startKeepAlive();
       });
       
       // Wait for first segment to be loaded
@@ -920,11 +925,72 @@ export default function WebRTCVideoPlayer({
     }
   }, []);
 
+  const startKeepAlive = useCallback(() => {
+    // Clear existing keep-alive
+    if (keepAliveInterval.current) {
+      clearInterval(keepAliveInterval.current);
+    }
+    if (animationFrameId.current) {
+      cancelAnimationFrame(animationFrameId.current);
+    }
+
+    // Start keep-alive every 1 second to prevent browser throttling
+    keepAliveInterval.current = setInterval(() => {
+      if (isDestroyed.current) return;
+
+      // Force a small DOM manipulation to keep the tab "active"
+      const now = Date.now();
+      document.title = `Live Stream ${now}`;
+      
+      // Force HLS to stay active
+      if (hlsInstanceRef.current && hlsInstanceRef.current.media) {
+        hlsInstanceRef.current.startLoad();
+      }
+
+      // Force video to stay playing
+      if (videoRef.current && !videoRef.current.paused && isPlaying) {
+        // Just accessing the property is enough to keep it active
+        const currentTime = videoRef.current.currentTime;
+        if (currentTime > 0) {
+          // Video is playing, keep it active
+        }
+      }
+    }, 1000);
+
+    // Use requestAnimationFrame to keep browser busy
+    const keepAliveAnimation = () => {
+      if (isDestroyed.current) return;
+      
+      // Force video to stay playing
+      if (videoRef.current && !videoRef.current.paused && isPlaying) {
+        videoRef.current.play().catch(() => {
+          // Ignore autoplay errors
+        });
+      }
+      
+      animationFrameId.current = requestAnimationFrame(keepAliveAnimation);
+    };
+    
+    animationFrameId.current = requestAnimationFrame(keepAliveAnimation);
+  }, [isPlaying]);
+
+  const stopKeepAlive = useCallback(() => {
+    if (keepAliveInterval.current) {
+      clearInterval(keepAliveInterval.current);
+      keepAliveInterval.current = null;
+    }
+    if (animationFrameId.current) {
+      cancelAnimationFrame(animationFrameId.current);
+      animationFrameId.current = null;
+    }
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       isDestroyed.current = true;
       stopHLSHealthCheck();
+      stopKeepAlive();
       if (pcRef.current) {
         pcRef.current.close();
         pcRef.current = null;
@@ -934,7 +1000,7 @@ export default function WebRTCVideoPlayer({
         hlsInstanceRef.current = null;
       }
     };
-  }, [stopHLSHealthCheck]);
+  }, [stopHLSHealthCheck, stopKeepAlive]);
 
   if (connectionError) {
     return (
@@ -1009,7 +1075,7 @@ export default function WebRTCVideoPlayer({
       clearInterval(healthCheckInterval.current);
     }
 
-    // Start new health check every 5 seconds
+    // Start new health check every 2 seconds (more frequent)
     healthCheckInterval.current = setInterval(() => {
       if (isDestroyed.current || !hlsInstanceRef.current || !videoRef.current) {
         return;
@@ -1024,14 +1090,22 @@ export default function WebRTCVideoPlayer({
         currentTime: video.currentTime,
         duration: video.duration,
         isPlaying: isPlaying,
-        isTabVisible: isTabVisible
+        isTabVisible: isTabVisible,
+        hidden: document.hidden,
+        visibilityState: document.visibilityState
       });
 
-      // Check if video is stuck (paused but should be playing)
-      if (video.paused && isPlaying && isTabVisible) {
-        console.log('⚠️ Video is paused but should be playing, attempting to resume...');
+      // Force video to stay playing even in background tabs
+      if (video.paused && isPlaying) {
+        console.log('⚠️ Video is paused but should be playing, forcing resume...');
         video.play().catch((error) => {
           console.log('❌ Failed to resume video in health check:', error);
+          // Try again with a small delay
+          setTimeout(() => {
+            if (!isDestroyed.current && video.paused) {
+              video.play().catch(console.log);
+            }
+          }, 1000);
         });
       }
 
@@ -1046,7 +1120,12 @@ export default function WebRTCVideoPlayer({
         console.log('⚠️ Video has no duration, restarting HLS...');
         hls.startLoad();
       }
-    }, 5000);
+
+      // Force HLS to stay active by calling startLoad periodically
+      if (hls && hls.media) {
+        hls.startLoad();
+      }
+    }, 2000); // Check every 2 seconds instead of 5
   }, [isPlaying, isTabVisible]);
 
   return (

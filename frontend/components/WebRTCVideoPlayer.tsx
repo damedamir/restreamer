@@ -343,8 +343,7 @@ export default function WebRTCVideoPlayer({
         // Force segment loading
         forceKeyFrameOnDiscontinuity: true,
         // Better segment handling
-        maxFragLookUpTolerance: 0.25,
-        maxMaxBufferLength: 60
+        maxFragLookUpTolerance: 0.25
       });
       
       // Store HLS instance before loading

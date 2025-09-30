@@ -74,7 +74,6 @@ services:
       - "8000:8000/udp" # WebRTC over UDP
     volumes:
       - ./nginx/srs-minimal.conf:/usr/local/srs/conf/srs.conf:ro
-      - srs_hls:/var/www/hls
     environment:
       - CANDIDATE=192.168.1.24
     networks:
@@ -93,7 +92,6 @@ services:
       - ./nginx/sites:/etc/nginx/conf.d
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - ./certbot/www:/var/www/certbot:ro # <-- ADDED: Shared volume for Certbot challenges.
-      - srs_hls:/var/www/hls:ro # <-- ADDED: SRS HLS files
     networks:
       - restreamer-network
     depends_on:
@@ -113,7 +111,6 @@ services:
 # Define top-level volumes and networks
 volumes:
   postgres_data:
-  srs_hls:
   srs_dvr:
 
 networks: # <-- MOVED: This block must be at the bottom.

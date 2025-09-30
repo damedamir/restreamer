@@ -333,7 +333,7 @@ export default function WebRTCVideoPlayer({
     
     if ((window as any).Hls && (window as any).Hls.isSupported()) {
       const hls = new (window as any).Hls({
-        // Configure HLS.js for live streaming - force sync to latest
+        // Configure HLS.js for live streaming - use correct parameters
         liveSyncDurationCount: 0, // Force sync to latest segment immediately
         liveMaxLatencyDurationCount: 1, // Minimal latency
         liveDurationInfinity: true,
@@ -373,8 +373,6 @@ export default function WebRTCVideoPlayer({
         maxFragLookUpTolerance: 2.0,
         // Live stream specific settings - force latest
         maxLiveSyncPlaybackRate: 2.0,
-        liveSyncDuration: 0,
-        liveMaxLatencyDuration: 5,
         // Force start from latest segment
         liveBackBufferLength: 0
       });

@@ -63,137 +63,139 @@ export default function FLVVideoPlayer({
     console.log('🔗 [FLV] FLV URL:', flvUrl);
     
     // Check if FLV.js is available
-    if (typeof window !== 'undefined' && (window as any).flvjs) {
-      if ((window as any).flvjs.isSupported()) {
-        console.log('✅ [FLV] FLV.js is supported, creating player');
-        
-        const flvPlayer = (window as any).flvjs.createPlayer({
-          type: 'flv',
-          url: flvUrl,
-          isLive: true,
-          hasAudio: true,
-          hasVideo: true,
-          enableWorker: false,
-          enableStashBuffer: false,
-          stashInitialSize: 128,
-          autoCleanupSourceBuffer: true,
-          autoCleanupMaxBackwardDuration: 3,
-          autoCleanupMinBackwardDuration: 2,
-          fixAudioTimestampGap: true,
-          accurateSeek: false,
-          seekType: 'range',
-          rangeLoadZeroStart: false,
-          lazyLoad: false,
-          lazyLoadMaxDuration: 3 * 60,
-          lazyLoadRecoverDuration: 30,
-          deferLoadAfterSourceOpen: false,
-          autoOnloadStart: true,
-          autoOnloadEnd: true,
-          autoOnloadStartTime: 0,
-          autoOnloadEndTime: 0,
-          autoOnloadSeekTime: 0,
-          liveBufferLatencyChasing: true,
-          liveBufferLatencyMaxLatency: 1.5,
-          liveBufferLatencyMinRemain: 0.3,
-          liveBackBufferLength: 0,
-          liveFlvPlayer: true
-        });
-        
-        // Store player reference
-        flvPlayerRef.current = flvPlayer;
-        
-        // Attach media element
-        flvPlayer.attachMediaElement(videoRef.current);
-        
-        // Handle FLV events
-        flvPlayer.on('loadstart', () => {
-          if (isDestroyed.current) return;
-          console.log('✅ [FLV] Load started');
-        });
-        
-        flvPlayer.on('loadedmetadata', () => {
-          if (isDestroyed.current) return;
-          console.log('✅ [FLV] Metadata loaded');
-        });
-        
-        flvPlayer.on('loadeddata', () => {
-          if (isDestroyed.current) return;
-          console.log('✅ [FLV] Data loaded');
-        });
-        
-        flvPlayer.on('canplay', () => {
-          if (isDestroyed.current) return;
-          console.log('✅ [FLV] Can play');
-          setIsConnected(true);
-          setIsConnecting(false);
-          onCanPlay?.();
-        });
-        
-        flvPlayer.on('canplaythrough', () => {
-          if (isDestroyed.current) return;
-          console.log('✅ [FLV] Can play through');
-        });
-        
-        flvPlayer.on('play', () => {
-          if (isDestroyed.current) return;
-          console.log('▶️ [FLV] Play started');
-          setIsPlaying(true);
-        });
-        
-        flvPlayer.on('playing', () => {
-          if (isDestroyed.current) return;
-          console.log('▶️ [FLV] Playing');
-          setIsPlaying(true);
-        });
-        
-        flvPlayer.on('pause', () => {
-          if (isDestroyed.current) return;
-          console.log('⏸️ [FLV] Paused');
-          setIsPlaying(false);
-        });
-        
-        flvPlayer.on('error', (error: any) => {
-          if (isDestroyed.current) return;
-          console.log('❌ [FLV] Error:', error);
-          setConnectionError('FLV playback error');
-          setIsConnecting(false);
-          onError?.(error.message || 'FLV playback error');
-        });
-        
-        flvPlayer.on('statistics_info', (info: any) => {
-          if (isDestroyed.current) return;
-          console.log('📊 [FLV] Statistics:', info);
-        });
-        
-        // Load and start playing
-        flvPlayer.load();
-        
-        // Try to play (muted autoplay)
-        flvPlayer.play().then(() => {
-          console.log('✅ [FLV] Playback started successfully');
-          setIsPlaying(true);
-          setIsConnected(true);
-          setIsConnecting(false);
-          onCanPlay?.();
-        }).catch((error: any) => {
-          console.log('⚠️ [FLV] Autoplay failed, video ready for user interaction:', error);
-          setIsConnected(true);
-          setIsConnecting(false);
-          onCanPlay?.();
-        });
-        
-      } else {
-        console.log('❌ [FLV] FLV.js not supported');
-        setConnectionError('FLV.js not supported');
-        setIsConnecting(false);
-        onError?.('FLV.js not supported');
-      }
-    } else {
+    if (typeof window === 'undefined') {
+      console.log('❌ [FLV] Not in browser environment');
+      setConnectionError('Not in browser environment');
+      setIsConnecting(false);
+      onError?.('Not in browser environment');
+      return;
+    }
+    
+    const flvjs = (window as any).flvjs;
+    if (!flvjs) {
       console.log('❌ [FLV] FLV.js not loaded');
       setConnectionError('FLV.js not loaded');
       setIsConnecting(false);
       onError?.('FLV.js not loaded');
+      return;
     }
+    
+    if (!flvjs.isSupported()) {
+      console.log('❌ [FLV] FLV.js not supported');
+      setConnectionError('FLV.js not supported');
+      setIsConnecting(false);
+      onError?.('FLV.js not supported');
+      return;
+    }
+    
+    console.log('✅ [FLV] FLV.js is available and supported, creating player');
+    
+    const flvPlayer = flvjs.createPlayer({
+      type: 'flv',
+      url: flvUrl,
+      isLive: true,
+      hasAudio: true,
+      hasVideo: true,
+      enableWorker: false,
+      enableStashBuffer: false,
+      stashInitialSize: 128,
+      autoCleanupSourceBuffer: true,
+      autoCleanupMaxBackwardDuration: 3,
+      autoCleanupMinBackwardDuration: 2,
+      fixAudioTimestampGap: true,
+      accurateSeek: false,
+      seekType: 'range',
+      rangeLoadZeroStart: false,
+      lazyLoad: false,
+      lazyLoadMaxDuration: 3 * 60,
+      lazyLoadRecoverDuration: 30,
+      deferLoadAfterSourceOpen: false,
+      autoOnloadStart: true,
+      autoOnloadEnd: true,
+      autoOnloadStartTime: 0,
+      autoOnloadEndTime: 0,
+      autoOnloadSeekTime: 0,
+      liveBufferLatencyChasing: true,
+      liveBufferLatencyMaxLatency: 1.5,
+      liveBufferLatencyMinRemain: 0.3,
+      liveBackBufferLength: 0,
+      liveFlvPlayer: true
+    });
+    
+    // Store player reference
+    flvPlayerRef.current = flvPlayer;
+    
+    // Attach media element
+    flvPlayer.attachMediaElement(videoRef.current);
+    
+    // Handle FLV events
+    flvPlayer.on('loadstart', () => {
+      if (isDestroyed.current) return;
+      console.log('✅ [FLV] Load started');
+    });
+    
+    flvPlayer.on('loadedmetadata', () => {
+      if (isDestroyed.current) return;
+      console.log('✅ [FLV] Metadata loaded');
+      if (videoRef.current) {
+        videoRef.current.muted = isMuted;
+        videoRef.current.play().catch(e => {
+          console.log('⚠️ [FLV] Autoplay prevented:', e);
+        });
+      }
+    });
+    
+    flvPlayer.on('canplay', () => {
+      if (isDestroyed.current) return;
+      console.log('✅ [FLV] Can play');
+      setIsConnected(true);
+      setIsConnecting(false);
+      onCanPlay?.();
+    });
+    
+    flvPlayer.on('play', () => {
+      if (isDestroyed.current) return;
+      console.log('▶️ [FLV] Play started');
+      setIsPlaying(true);
+    });
+    
+    flvPlayer.on('pause', () => {
+      if (isDestroyed.current) return;
+      console.log('⏸️ [FLV] Paused');
+      setIsPlaying(false);
+    });
+    
+    flvPlayer.on('error', (errorType: any, errorDetail: any, errorInfo: any) => {
+      if (isDestroyed.current) return;
+      console.error('❌ [FLV] Player error:', errorType, errorDetail, errorInfo);
+      setConnectionError(`FLV error: ${errorDetail}`);
+      setIsConnecting(false);
+      onError?.(`FLV error: ${errorDetail}`);
+    });
+    
+    // Handle video element events
+    if (videoRef.current) {
+      videoRef.current.onplay = () => {
+        console.log('▶️ [FLV] Video playing');
+        setIsPlaying(true);
+      };
+      
+      videoRef.current.onpause = () => {
+        console.log('⏸️ [FLV] Video paused');
+        setIsPlaying(false);
+      };
+      
+      videoRef.current.onerror = (e) => {
+        console.error('❌ [FLV] Video error:', e);
+        setConnectionError('Video playback error');
+        setIsConnecting(false);
+        onError?.('Video playback error');
+      };
+    }
+    
+    // Load and start playback
+    console.log('🔄 [FLV] Loading FLV stream:', flvUrl);
+    flvPlayer.load();
   }, [rtmpKey, isLive, onError, onLoadStart, onCanPlay]);
 
   // Start playback when component mounts or stream becomes live
@@ -206,13 +208,18 @@ export default function FLVVideoPlayer({
   // Load FLV.js script
   useEffect(() => {
     if (typeof window !== 'undefined' && !(window as any).flvjs) {
+      console.log('🔄 [FLV] Loading FLV.js script...');
       const script = document.createElement('script');
       script.src = 'https://cdn.jsdelivr.net/npm/flv.js@latest/dist/flv.min.js';
       script.onload = () => {
-        console.log('✅ [FLV] FLV.js loaded');
-        if (isLive && !isConnecting && !isConnected) {
-          startFLVPlayback();
-        }
+        console.log('✅ [FLV] FLV.js loaded successfully');
+        // Wait a bit for the script to fully initialize
+        setTimeout(() => {
+          if (isLive && !isConnecting && !isConnected) {
+            console.log('🔄 [FLV] Starting playback after script load');
+            startFLVPlayback();
+          }
+        }, 100);
       };
       script.onerror = () => {
         console.log('❌ [FLV] Failed to load FLV.js');
@@ -220,6 +227,11 @@ export default function FLVVideoPlayer({
         onError?.('Failed to load FLV.js');
       };
       document.head.appendChild(script);
+    } else if ((window as any).flvjs) {
+      console.log('✅ [FLV] FLV.js already loaded');
+      if (isLive && !isConnecting && !isConnected) {
+        startFLVPlayback();
+      }
     }
   }, [isLive, isConnecting, isConnected, startFLVPlayback, onError]);
 

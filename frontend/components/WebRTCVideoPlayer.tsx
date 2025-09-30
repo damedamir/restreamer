@@ -374,7 +374,6 @@ export default function WebRTCVideoPlayer({
         // Better segment handling for live streams
         maxFragLookUpTolerance: 1.0,
         // Live stream specific settings
-        liveBackBufferLength: 0,
         maxLiveSyncPlaybackRate: 1.5,
         liveSyncDuration: 0,
         liveMaxLatencyDuration: 10

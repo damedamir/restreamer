@@ -26,6 +26,7 @@ export default function FLVVideoPlayer({
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isFLVReady, setIsFLVReady] = useState(false);
   const isDestroyed = useRef(false);
 
   // Reset connection state when props change
@@ -36,6 +37,7 @@ export default function FLVVideoPlayer({
     setConnectionError(null);
     setIsConnected(false);
     setIsPlaying(false);
+    setIsFLVReady(false);
     
     // Clean up existing player
     if (flvPlayerRef.current) {
@@ -200,10 +202,11 @@ export default function FLVVideoPlayer({
 
   // Start playback when component mounts or stream becomes live
   useEffect(() => {
-    if (isLive && !isConnecting && !isConnected) {
+    if (isLive && !isConnecting && !isConnected && isFLVReady) {
+      console.log('🔄 [FLV] Starting playback - FLV.js is ready');
       startFLVPlayback();
     }
-  }, [isLive, isConnecting, isConnected, startFLVPlayback]);
+  }, [isLive, isConnecting, isConnected, isFLVReady, startFLVPlayback]);
 
   // Load FLV.js script
   useEffect(() => {
@@ -215,10 +218,8 @@ export default function FLVVideoPlayer({
         console.log('✅ [FLV] FLV.js loaded successfully');
         // Wait a bit for the script to fully initialize
         setTimeout(() => {
-          if (isLive && !isConnecting && !isConnected) {
-            console.log('🔄 [FLV] Starting playback after script load');
-            startFLVPlayback();
-          }
+          console.log('✅ [FLV] FLV.js is ready for playback');
+          setIsFLVReady(true);
         }, 100);
       };
       script.onerror = () => {
@@ -229,11 +230,10 @@ export default function FLVVideoPlayer({
       document.head.appendChild(script);
     } else if ((window as any).flvjs) {
       console.log('✅ [FLV] FLV.js already loaded');
-      if (isLive && !isConnecting && !isConnected) {
-        startFLVPlayback();
-      }
+      console.log('✅ [FLV] FLV.js is ready for playback');
+      setIsFLVReady(true);
     }
-  }, [isLive, isConnecting, isConnected, startFLVPlayback, onError]);
+  }, [onError]);
 
   // Cleanup on unmount
   useEffect(() => {

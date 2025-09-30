@@ -25,6 +25,8 @@ export default function WebRTCVideoPlayer({
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const connectionAttempted = useRef(false);
   const retryCount = useRef(0);
   const maxRetries = 3;
@@ -429,15 +431,18 @@ export default function WebRTCVideoPlayer({
           duration: videoRef.current?.duration
         });
         
-        // Now try to play
+        // Now try to play (muted autoplay is always allowed)
         if (videoRef.current && videoRef.current.readyState >= 1) {
-          console.log('🎬 [HLS] Attempting to play video');
+          console.log('🎬 [HLS] Attempting to play video (muted autoplay)');
           const playPromise = videoRef.current.play();
           if (playPromise !== undefined) {
             playPromise.then(() => {
-              console.log('✅ [HLS] Video playback started successfully');
+              console.log('✅ [HLS] Video playback started successfully (muted)');
+              setIsPlaying(true);
             }).catch((error) => {
               console.log('⚠️ [HLS] Autoplay blocked by browser:', error);
+              // Show play button if autoplay fails
+              setIsPlaying(false);
             });
           }
         } else {
@@ -859,10 +864,53 @@ export default function WebRTCVideoPlayer({
   }
 
   const handleVideoClick = useCallback(() => {
-    if (videoRef.current && videoRef.current.paused) {
-      videoRef.current.play().catch((error) => {
-        console.log('⚠️ Manual play failed:', error);
-      });
+    console.log('🖱️ Video clicked');
+    console.log('📊 Video element state on click:', {
+      readyState: videoRef.current?.readyState,
+      paused: videoRef.current?.paused,
+      currentTime: videoRef.current?.currentTime,
+      duration: videoRef.current?.duration,
+      muted: videoRef.current?.muted
+    });
+    
+    if (videoRef.current) {
+      if (videoRef.current.paused) {
+        console.log('🎬 Video is paused, trying to play...');
+        videoRef.current.play().then(() => {
+          console.log('✅ Manual play successful');
+          setIsPlaying(true);
+        }).catch((error) => {
+          console.log('❌ Manual play failed:', error);
+        });
+      } else {
+        console.log('⏸️ Video is playing, pausing...');
+        videoRef.current.pause();
+        setIsPlaying(false);
+      }
+    } else {
+      console.log('❌ Video element not found');
+    }
+  }, []);
+
+  const handleUnmuteClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log('🔊 Unmute button clicked');
+    
+    if (videoRef.current) {
+      videoRef.current.muted = false;
+      setIsMuted(false);
+      console.log('✅ Video unmuted');
+    }
+  }, []);
+
+  const handleMuteClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log('🔇 Mute button clicked');
+    
+    if (videoRef.current) {
+      videoRef.current.muted = true;
+      setIsMuted(true);
+      console.log('✅ Video muted');
     }
   }, []);
 
@@ -872,10 +920,18 @@ export default function WebRTCVideoPlayer({
         ref={videoRef}
         autoPlay
         playsInline
-        muted
+        muted={isMuted}
         className="w-full h-full cursor-pointer"
         onLoadStart={onLoadStart}
         onClick={handleVideoClick}
+        onPlay={() => {
+          console.log('🎬 Video started playing');
+          setIsPlaying(true);
+        }}
+        onPause={() => {
+          console.log('⏸️ Video paused');
+          setIsPlaying(false);
+        }}
         onError={(e) => {
           console.error('Video error:', e);
           setConnectionError('Video playback failed');
@@ -892,11 +948,47 @@ export default function WebRTCVideoPlayer({
         </div>
       )}
       {!isConnecting && isConnected && videoRef.current?.paused && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+        <div 
+          className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 cursor-pointer z-10"
+          onClick={handleVideoClick}
+        >
           <div className="text-white text-center">
             <div className="text-6xl mb-4">▶️</div>
             <div className="text-lg">Click to play</div>
           </div>
+        </div>
+      )}
+      
+      {/* Unmute button when video is playing but muted */}
+      {!isConnecting && isConnected && isPlaying && isMuted && (
+        <div className="absolute top-4 right-4 z-20">
+          <button
+            onClick={handleUnmuteClick}
+            className="bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-3 rounded-full transition-all duration-200 flex items-center gap-2"
+            title="Unmute"
+          >
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793L5.5 14H2a1 1 0 01-1-1V7a1 1 0 011-1h3.5l2.883-2.793a1 1 0 011.617.793zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
+            </svg>
+            <span className="text-sm">Unmute</span>
+          </button>
+        </div>
+      )}
+      
+      {/* Mute button when video is playing and unmuted */}
+      {!isConnecting && isConnected && isPlaying && !isMuted && (
+        <div className="absolute top-4 right-4 z-20">
+          <button
+            onClick={handleMuteClick}
+            className="bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-3 rounded-full transition-all duration-200 flex items-center gap-2"
+            title="Mute"
+          >
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793L5.5 14H2a1 1 0 01-1-1V7a1 1 0 011-1h3.5l2.883-2.793a1 1 0 011.617.793zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
+              <path d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06L3.28 2.22z" />
+            </svg>
+            <span className="text-sm">Mute</span>
+          </button>
         </div>
       )}
     </div>

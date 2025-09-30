@@ -29,6 +29,7 @@ export default function WebRTCVideoPlayer({
   const retryCount = useRef(0);
   const maxRetries = 3;
   const isDestroyed = useRef(false);
+  const hlsConnectionAttempted = useRef(false);
 
   // Reset connection state when props change
   useEffect(() => {
@@ -39,6 +40,7 @@ export default function WebRTCVideoPlayer({
     setConnectionError(null);
     setIsConnected(false);
     connectionAttempted.current = false;
+    hlsConnectionAttempted.current = false;
     retryCount.current = 0;
     
     // Clean up existing connection
@@ -293,6 +295,12 @@ export default function WebRTCVideoPlayer({
 
   const startHLSPlayback = useCallback((streamName: string) => {
     if (isDestroyed.current || !videoRef.current) return;
+    
+    // Check if HLS instance already exists and is working
+    if (hlsInstanceRef.current && hlsInstanceRef.current.media) {
+      console.log('⚠️ HLS instance already exists and is attached, skipping creation');
+      return;
+    }
     
     // Clean up existing HLS instance more carefully
     if (hlsInstanceRef.current) {
@@ -777,11 +785,21 @@ export default function WebRTCVideoPlayer({
     console.log('🚀 WebRTCVideoPlayer useEffect triggered');
     console.log('📊 Props:', { rtmpKey, isLive, rtmpUrl });
     console.log('📊 State:', { isConnecting, isConnected, connectionError });
+    console.log('📊 HLS Connection Attempted:', hlsConnectionAttempted.current);
     
     if (!rtmpKey || !isLive) {
       console.log('❌ Skipping connection - missing rtmpKey or not live');
+      hlsConnectionAttempted.current = false;
       return;
     }
+
+    // Prevent multiple HLS connection attempts
+    if (hlsConnectionAttempted.current) {
+      console.log('⚠️ HLS connection already attempted, skipping');
+      return;
+    }
+
+    hlsConnectionAttempted.current = true;
 
     // Try HLS first, then WebRTC as fallback
     tryHLSFirst().then((hlsSuccess) => {
@@ -807,7 +825,7 @@ export default function WebRTCVideoPlayer({
         (videoRef.current as any).hls = null;
       }
     };
-  }, [rtmpKey, isLive, tryHLSFirst, connectWebRTC]);
+  }, [rtmpKey, isLive]);
 
   // Cleanup on unmount
   useEffect(() => {

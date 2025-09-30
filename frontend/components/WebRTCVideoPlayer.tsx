@@ -333,50 +333,50 @@ export default function WebRTCVideoPlayer({
     
     if ((window as any).Hls && (window as any).Hls.isSupported()) {
       const hls = new (window as any).Hls({
-        // Configure HLS.js for live streaming
-        liveSyncDurationCount: 1, // Sync to latest segment immediately
-        liveMaxLatencyDurationCount: 2, // Keep latency very low
+        // Configure HLS.js for live streaming - force sync to latest
+        liveSyncDurationCount: 0, // Force sync to latest segment immediately
+        liveMaxLatencyDurationCount: 1, // Minimal latency
         liveDurationInfinity: true,
         highBufferWatchdogPeriod: 1,
-        maxBufferLength: 10, // Smaller buffer for live streaming
-        maxMaxBufferLength: 20,
-        backBufferLength: 10,
+        maxBufferLength: 5, // Very small buffer for live streaming
+        maxMaxBufferLength: 10,
+        backBufferLength: 5,
         // Enable low latency mode
         lowLatencyMode: true,
         // Configure error recovery
-        maxLoadingDelay: 2,
-        // Enable live backoff
-        liveBackBufferLength: 0,
+        maxLoadingDelay: 1,
         // Start from latest level
         startLevel: -1,
         capLevelToPlayerSize: true,
         // Fix buffering issues
-        maxBufferSize: 30 * 1000 * 1000, // 30MB
-        maxBufferHole: 0.5, // Allow larger buffer holes for live
-        maxSeekHole: 5,
-        seekHoleNudgeDuration: 0.5,
-        seekHoleNudgeOffset: 0.5,
+        maxBufferSize: 20 * 1000 * 1000, // 20MB
+        maxBufferHole: 1.0, // Allow larger buffer holes for live
+        maxSeekHole: 10,
+        seekHoleNudgeDuration: 1.0,
+        seekHoleNudgeOffset: 1.0,
         // Better error recovery
-        fragLoadingTimeOut: 10000,
-        manifestLoadingTimeOut: 5000,
-        levelLoadingTimeOut: 5000,
+        fragLoadingTimeOut: 5000,
+        manifestLoadingTimeOut: 3000,
+        levelLoadingTimeOut: 3000,
         // Prevent manifest reloading issues
-        manifestLoadingMaxRetry: 3,
-        manifestLoadingRetryDelay: 1000,
+        manifestLoadingMaxRetry: 5,
+        manifestLoadingRetryDelay: 500,
         // Prevent segment cancellation
-        fragLoadingMaxRetry: 5,
-        fragLoadingRetryDelay: 500,
+        fragLoadingMaxRetry: 10,
+        fragLoadingRetryDelay: 200,
         // Disable problematic features
         enableWorker: false,
         enableSoftwareAES: true,
         // Force segment loading
         forceKeyFrameOnDiscontinuity: true,
         // Better segment handling for live streams
-        maxFragLookUpTolerance: 1.0,
-        // Live stream specific settings
-        maxLiveSyncPlaybackRate: 1.5,
+        maxFragLookUpTolerance: 2.0,
+        // Live stream specific settings - force latest
+        maxLiveSyncPlaybackRate: 2.0,
         liveSyncDuration: 0,
-        liveMaxLatencyDuration: 10
+        liveMaxLatencyDuration: 5,
+        // Force start from latest segment
+        liveBackBufferLength: 0
       });
       
       // Store HLS instance before loading
@@ -432,6 +432,20 @@ export default function WebRTCVideoPlayer({
         
         // Start keep-alive mechanism to prevent browser throttling
         startKeepAlive();
+      });
+      
+      // Force HLS to start from latest segment
+      hls.on((window as any).Hls.Events.LEVEL_LOADED, (event: any, data: any) => {
+        if (isDestroyed.current) return;
+        
+        console.log('📋 [HLS] Level loaded, forcing sync to latest segment...');
+        console.log('📊 [HLS] Level details:', data);
+        
+        // Force HLS to start from the latest segment
+        if (hls.media && hls.media.readyState >= 1) {
+          console.log('🔄 [HLS] Forcing HLS to start from latest segment...');
+          hls.startLoad();
+        }
       });
       
       // Wait for first segment to be loaded

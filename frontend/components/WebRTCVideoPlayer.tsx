@@ -336,10 +336,7 @@ export default function WebRTCVideoPlayer({
         manifestLoadingRetryDelay: 2000,
         // Disable problematic features
         enableWorker: false,
-        enableSoftwareAES: true,
-        // Prevent multiple manifest requests
-        liveBackBufferLength: 0,
-        liveDurationInfinity: true
+        enableSoftwareAES: true
       });
       
       // Store HLS instance before loading

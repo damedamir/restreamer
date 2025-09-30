@@ -20,37 +20,14 @@ export default function WebRTCVideoPlayer({
   onLoadStart, 
   onCanPlay 
 }: WebRTCVideoPlayerProps) {
-  const [useFLV, setUseFLV] = useState(false);
-  const [hlsError, setHlsError] = useState(false);
-
-  // Try HLS first (since it was working), fallback to FLV if needed
-  const handleHLSError = useCallback((error: string) => {
-    console.log('HLS failed, trying FLV fallback:', error);
-    setHlsError(true);
-    setUseFLV(true);
-  }, []);
-
-  // If HLS had an error, use FLV
-  if (useFLV || hlsError) {
-    return (
-      <FLVVideoPlayer
-        rtmpUrl={rtmpUrl}
-        rtmpKey={rtmpKey}
-        isLive={isLive}
-        onError={onError}
-        onLoadStart={onLoadStart}
-        onCanPlay={onCanPlay}
-      />
-    );
-  }
-
-  // Try HLS first (restore the working HLS implementation)
+  // Use FLV.js as the primary solution for live streaming
+  // This is much simpler and more reliable than HLS.js for live streaming
   return (
-    <HLSVideoPlayer
+    <FLVVideoPlayer
       rtmpUrl={rtmpUrl}
       rtmpKey={rtmpKey}
       isLive={isLive}
-      onError={handleHLSError}
+      onError={onError}
       onLoadStart={onLoadStart}
       onCanPlay={onCanPlay}
     />

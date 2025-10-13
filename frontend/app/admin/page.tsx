@@ -246,6 +246,35 @@ export default function AdminPage() {
     }
   };
 
+  const createDefaultConfig = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${getApiBaseUrl()}/api/configurations/create-default`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const newConfig = await response.json();
+        setConfigs([...configs, newConfig]);
+        showSuccess('Default Configuration Created', `"${newConfig.name}" has been created successfully`);
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to create default configuration:', errorData);
+        showError('Configuration Failed', errorData.error || 'Failed to create default configuration. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error creating default configuration:', error);
+      showError('Network Error', 'Unable to connect to the server. Please check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const cloneConfig = async (config: Config) => {
     try {
       const token = localStorage.getItem('token');
@@ -523,7 +552,33 @@ export default function AdminPage() {
 
 
             <div className="space-y-4">
-              {configs.map((config) => (
+              {configs.length === 0 ? (
+                <div className="bg-gray-800 rounded-lg p-8 border border-gray-700 text-center">
+                  <CameraIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-white mb-2">No Configurations Yet</h3>
+                  <p className="text-gray-400 mb-6">
+                    Create your first streaming configuration to get started with live streaming.
+                  </p>
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => setShowCreateConfig(true)}
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                    >
+                      Create Your First Configuration
+                    </button>
+                    <div className="text-sm text-gray-500">
+                      Or use our quick setup to create a default configuration
+                    </div>
+                    <button
+                      onClick={createDefaultConfig}
+                      className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors"
+                    >
+                      Quick Setup (Default)
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                configs.map((config) => (
                 <div key={config.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
@@ -641,7 +696,8 @@ export default function AdminPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         )}

@@ -240,4 +240,93 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Create default configuration
+router.post('/create-default', authenticateToken, async (req, res) => {
+  try {
+    const userId = (req as any).user.userId;
+
+    // Get the first user (admin)
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'User not found' });
+    }
+
+    // Get or create the SRS server
+    let srsServer = await prisma.rtmpServer.findFirst({
+      where: { name: 'SRS Server (Default)' }
+    });
+
+    if (!srsServer) {
+      srsServer = await prisma.rtmpServer.create({
+        data: {
+          name: 'SRS Server (Default)',
+          description: 'SRS media server for live streaming',
+          rtmpUrl: 'rtmp://hive.restreamer.website:1935/live',
+          isActive: true
+        }
+      });
+    }
+
+    // Check if user already has configurations
+    const existingConfigs = await prisma.rtmpConfiguration.findMany({
+      where: { userId: user.id }
+    });
+
+    if (existingConfigs.length > 0) {
+      return res.status(400).json({ error: 'User already has configurations' });
+    }
+
+    // Generate unique RTMP key
+    function generateRtmpKey(): string {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < 12; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
+
+    let rtmpKey: string;
+    let isUnique = false;
+    let attempts = 0;
+    
+    do {
+      rtmpKey = generateRtmpKey();
+      const existing = await prisma.rtmpConfiguration.findUnique({
+        where: { rtmpKey }
+      });
+      isUnique = !existing;
+      attempts++;
+    } while (!isUnique && attempts < 10);
+
+    if (!isUnique) {
+      return res.status(500).json({ error: 'Failed to generate unique RTMP key' });
+    }
+
+    // Create default configuration
+    const configuration = await prisma.rtmpConfiguration.create({
+      data: {
+        name: 'Default Stream',
+        rtmpKey,
+        rtmpServerId: srsServer.id,
+        status: 'Inactive',
+        selected: true, // Make it the default selected configuration
+        userId: user.id
+      },
+      include: {
+        brandedUrls: true,
+        rtmpServer: true
+      }
+    });
+
+    res.status(201).json(configuration);
+  } catch (error) {
+    console.error('Error creating default configuration:', error);
+    res.status(500).json({ error: 'Failed to create default configuration' });
+  }
+});
+
 export default router;

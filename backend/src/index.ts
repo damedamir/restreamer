@@ -15,15 +15,19 @@ import streamStatusRoutes from './routes/stream-status.js';
 dotenv.config();
 
 const app = express();
-export const prisma = new PrismaClient();
+const prisma = new PrismaClient();
+
 const PORT = parseInt(process.env.PORT || '3001');
 
 // Middleware
 app.use(helmet());
 app.use(morgan('combined'));
 app.use(cors({
-  origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
-  credentials: true
+  origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000', 'https://hive.restreamer.website'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar']
 }));
 app.use(express.json());
 
@@ -49,21 +53,15 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend API is working!' });
 });
 
+// Error handling middleware
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log('🚀 Backend server running on port ' + PORT);
-  console.log('📊 Health check: http://localhost:' + PORT + '/health');
+  console.log(`Server running on port ${PORT}`);
 });
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  await prisma.$disconnect();
-  process.exit(0);
-});
-
-process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully');
-  await prisma.$disconnect();
-  process.exit(0);
-});
+export { prisma };

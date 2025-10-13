@@ -28,7 +28,7 @@ export default function HomePage() {
       // Client-side: check if we're on localhost
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         // Always use direct backend connection for localhost development
-        return 'process.env.NEXT_PUBLIC_API_URL';
+        return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
       }
     }
     // Server-side or production: use relative URLs (will be proxied by nginx)
@@ -48,29 +48,82 @@ export default function HomePage() {
         body: JSON.stringify({ email, password, rememberMe }),
       });
       
-      const data = await response.json();
-      
-      if (response.ok) {
-        // Store the token based on remember me preference
-        if (rememberMe) {
-          // Store in localStorage for persistent sessions
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('rememberMe', 'true');
-          localStorage.setItem('userEmail', email);
-        } else {
-          // Store in sessionStorage for session-only storage
-          sessionStorage.setItem('token', data.token);
-          sessionStorage.setItem('rememberMe', 'false');
+      // Handle different response types
+      if (!response.ok) {
+        let errorMessage = 'Login failed. Please try again.';
+        
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (parseError) {
+          // If response is not JSON, use status-based messages
+          switch (response.status) {
+            case 401:
+              errorMessage = 'Invalid email or password. Please check your credentials.';
+              break;
+            case 403:
+              errorMessage = 'Access denied. Your account may be disabled.';
+              break;
+            case 404:
+              errorMessage = 'Login service not found. Please contact support.';
+              break;
+            case 429:
+              errorMessage = 'Too many login attempts. Please wait a moment and try again.';
+              break;
+            case 500:
+              errorMessage = 'Server error. Please try again later.';
+              break;
+            case 503:
+              errorMessage = 'Service temporarily unavailable. Please try again later.';
+              break;
+            default:
+              errorMessage = `Login failed (${response.status}). Please try again.`;
+          }
         }
         
-        // Redirect to admin dashboard on successful login
-        window.location.href = '/admin';
-      } else {
-        alert(data.message || 'Invalid credentials. Please try again.');
+        alert(errorMessage);
+        return;
       }
+      
+      const data = await response.json();
+      
+      // Store the token based on remember me preference
+      if (rememberMe) {
+        // Store in localStorage for persistent sessions
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('rememberMe', 'true');
+        localStorage.setItem('userEmail', email);
+      } else {
+        // Store in sessionStorage for session-only storage
+        sessionStorage.setItem('token', data.token);
+        sessionStorage.setItem('rememberMe', 'false');
+      }
+      
+      // Redirect to admin dashboard on successful login
+      window.location.href = '/admin';
+      
     } catch (error) {
-      console.error('Login error:', error);
-      alert('Login failed. Please try again.');
+      // Enhanced error handling with specific error types
+      let errorMessage = 'Login failed. Please try again.';
+      
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        // Network error
+        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+        console.error('Network error during login:', error);
+      } else if (error instanceof SyntaxError) {
+        // JSON parsing error
+        errorMessage = 'Invalid response from server. Please try again.';
+        console.error('JSON parsing error during login:', error);
+      } else if (error instanceof Error) {
+        // Generic error with message
+        errorMessage = `Login error: ${error.message}`;
+        console.error('Login error:', error);
+      } else {
+        // Unknown error
+        console.error('Unknown login error:', error);
+      }
+      
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }

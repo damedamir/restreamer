@@ -12,7 +12,54 @@ export default function HomePage() {
   useEffect(() => {
     setCurrentTime(new Date().toLocaleString());
     
-    // Check for remembered user
+    // Check for existing valid session
+    const checkExistingSession = () => {
+      // Check localStorage first (remember me)
+      let token = localStorage.getItem('token');
+      let rememberMe = localStorage.getItem('rememberMe') === 'true';
+      let userEmail = localStorage.getItem('userEmail');
+      let expiresAt = localStorage.getItem('expiresAt');
+
+      // If not found in localStorage, check sessionStorage
+      if (!token) {
+        token = sessionStorage.getItem('token');
+        rememberMe = sessionStorage.getItem('rememberMe') === 'true';
+        userEmail = sessionStorage.getItem('userEmail');
+        expiresAt = sessionStorage.getItem('expiresAt');
+      }
+
+      if (!token || !userEmail || !expiresAt) {
+        return false;
+      }
+
+      // Check if token has expired
+      const now = Date.now();
+      const expiryTime = parseInt(expiresAt);
+      
+      if (now > expiryTime) {
+        // Clear expired session
+        localStorage.removeItem('token');
+        localStorage.removeItem('rememberMe');
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('expiresAt');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('rememberMe');
+        sessionStorage.removeItem('userEmail');
+        sessionStorage.removeItem('expiresAt');
+        return false;
+      }
+
+      // Valid session found, redirect to admin
+      window.location.href = '/admin';
+      return true;
+    };
+
+    // Check for existing session
+    if (checkExistingSession()) {
+      return; // Will redirect to admin
+    }
+    
+    // Check for remembered user (for pre-filling form)
     const rememberedEmail = localStorage.getItem('userEmail');
     const isRemembered = localStorage.getItem('rememberMe') === 'true';
     

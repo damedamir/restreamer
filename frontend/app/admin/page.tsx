@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '../../contexts/ToastContext';
+import { SessionHandler } from '../../lib/sessionHandler';
 import {
   ChartBarIcon,
   PlayIcon,
@@ -66,6 +67,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [sessionInfo, setSessionInfo] = useState<{ email: string; expiresIn: string; rememberMe: boolean } | null>(null);
   
   // Find the currently selected configuration
   const selectedConfig = configs.find(config => config.selected);
@@ -99,10 +101,17 @@ export default function AdminPage() {
 
   // Check authentication on component mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      // No token found, redirect to login
+    // Check if user is authenticated using session handler
+    if (!SessionHandler.isAuthenticated()) {
+      // No valid session found, redirect to login
       window.location.href = '/';
+      return;
+    }
+    
+    // Get token from session handler
+    const token = SessionHandler.getToken();
+    if (!token) {
+      SessionHandler.logout();
       return;
     }
     
@@ -115,22 +124,32 @@ export default function AdminPage() {
           }
         });
         
-               if (response.ok) {
-                 setIsAuthenticated(true);
-                 setIsCheckingAuth(false);
-                 // Load data after successful authentication
-                 loadConfigurations();
-                 loadBrandedUrls();
-                 loadRtmpServers();
-               } else {
-          // Token is invalid, redirect to login
-          localStorage.removeItem('token');
-          window.location.href = '/';
+        if (response.ok) {
+          setIsAuthenticated(true);
+          setIsCheckingAuth(false);
+          // Load data after successful authentication
+          loadConfigurations();
+          loadBrandedUrls();
+          loadRtmpServers();
+          
+          // Refresh session if it's expiring soon
+          if (SessionHandler.isExpiringSoon()) {
+            SessionHandler.refreshSession();
+          }
+          
+          // Update session info
+          setSessionInfo({
+            email: SessionHandler.getUserEmail() || '',
+            expiresIn: SessionHandler.getFormattedTimeUntilExpiry(),
+            rememberMe: SessionHandler.isRememberMeEnabled()
+          });
+        } else {
+          // Token is invalid, logout and redirect
+          SessionHandler.logout();
         }
       } catch (error) {
         console.error('Token verification failed:', error);
-        localStorage.removeItem('token');
-        window.location.href = '/';
+        SessionHandler.logout();
       }
     };
     
@@ -139,7 +158,12 @@ export default function AdminPage() {
 
   const loadConfigurations = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = SessionHandler.getToken();
+      if (!token) {
+        SessionHandler.logout();
+        return;
+      }
+      
       const response = await fetch(`${getApiBaseUrl()}/api/configurations`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -157,7 +181,11 @@ export default function AdminPage() {
 
   const loadRtmpServers = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = SessionHandler.getToken();
+      if (!token) {
+        SessionHandler.logout();
+        return;
+      }
       const response = await fetch(`${getApiBaseUrl()}/api/rtmp-servers`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -175,7 +203,11 @@ export default function AdminPage() {
 
   const loadBrandedUrls = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = SessionHandler.getToken();
+      if (!token) {
+        SessionHandler.logout();
+        return;
+      }
       const response = await fetch(`${getApiBaseUrl()}/api/branded-urls`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -191,13 +223,13 @@ export default function AdminPage() {
     }
   };
 
-  const handleSignOut = () => {
-    localStorage.removeItem('token');
-    window.location.href = '/';
-  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
+  };
+
+  const handleLogout = () => {
+    SessionHandler.logout();
   };
 
   const createConfig = async () => {
@@ -213,7 +245,11 @@ export default function AdminPage() {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = SessionHandler.getToken();
+      if (!token) {
+        SessionHandler.logout();
+        return;
+      }
       const response = await fetch(`${getApiBaseUrl()}/api/configurations`, {
         method: 'POST',
         headers: {
@@ -249,7 +285,11 @@ export default function AdminPage() {
   const createDefaultConfig = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = SessionHandler.getToken();
+      if (!token) {
+        SessionHandler.logout();
+        return;
+      }
       const response = await fetch(`${getApiBaseUrl()}/api/configurations/create-default`, {
         method: 'POST',
         headers: {
@@ -277,7 +317,11 @@ export default function AdminPage() {
 
   const cloneConfig = async (config: Config) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = SessionHandler.getToken();
+      if (!token) {
+        SessionHandler.logout();
+        return;
+      }
       const response = await fetch(`${getApiBaseUrl()}/api/configurations/${config.id}/clone`, {
         method: 'POST',
         headers: {
@@ -298,7 +342,11 @@ export default function AdminPage() {
 
   const deleteConfig = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = SessionHandler.getToken();
+      if (!token) {
+        SessionHandler.logout();
+        return;
+      }
       const response = await fetch(`${getApiBaseUrl()}/api/configurations/${id}`, {
         method: 'DELETE',
         headers: {
@@ -319,7 +367,11 @@ export default function AdminPage() {
 
   const selectConfig = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = SessionHandler.getToken();
+      if (!token) {
+        SessionHandler.logout();
+        return;
+      }
       const response = await fetch(`${getApiBaseUrl()}/api/configurations/${id}`, {
         method: 'PUT',
         headers: {
@@ -344,7 +396,11 @@ export default function AdminPage() {
     if (!config) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = SessionHandler.getToken();
+      if (!token) {
+        SessionHandler.logout();
+        return;
+      }
       const response = await fetch(`${getApiBaseUrl()}/api/branded-urls`, {
         method: 'POST',
         headers: {
@@ -371,7 +427,11 @@ export default function AdminPage() {
 
   const deleteBrandedUrl = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = SessionHandler.getToken();
+      if (!token) {
+        SessionHandler.logout();
+        return;
+      }
       const response = await fetch(`${getApiBaseUrl()}/api/branded-urls/${id}`, {
         method: 'DELETE',
         headers: {
@@ -398,7 +458,11 @@ export default function AdminPage() {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = SessionHandler.getToken();
+      if (!token) {
+        SessionHandler.logout();
+        return;
+      }
       const response = await fetch(`${getApiBaseUrl()}/api/branded-urls`, {
         method: 'POST',
         headers: {
@@ -497,13 +561,21 @@ export default function AdminPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
-                <span className="text-sm font-medium text-gray-300">{user.email}</span>
+                <div>
+                  <span className="text-sm font-medium text-gray-300">{user.email}</span>
+                  {sessionInfo && (
+                    <div className="text-xs text-gray-500">
+                      {sessionInfo.rememberMe ? 'Remembered' : 'Session'} 
+                      {sessionInfo.expiresIn !== 'Expired' && ` (${sessionInfo.expiresIn})`}
+                    </div>
+                  )}
+                </div>
               </div>
               <button
-                onClick={handleSignOut}
+                onClick={handleLogout}
                 className="px-3 py-1 text-sm text-gray-300 hover:text-white border border-gray-600 rounded hover:bg-gray-700 transition-colors"
               >
-                Sign Out
+                Logout
               </button>
             </div>
           </div>

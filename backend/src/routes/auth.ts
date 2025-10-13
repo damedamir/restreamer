@@ -8,7 +8,7 @@ const router = express.Router();
 // Login endpoint
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
@@ -29,11 +29,12 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate JWT token
+    // Generate JWT token with different expiry based on remember me
+    const tokenExpiry = rememberMe ? '30d' : '24h';
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user.id, email: user.email, role: user.role, rememberMe: !!rememberMe },
       process.env.JWT_SECRET || 'your-jwt-secret',
-      { expiresIn: '24h' }
+      { expiresIn: tokenExpiry }
     );
 
     // Return success response
@@ -130,6 +131,50 @@ router.get('/verify', async (req, res) => {
     res.json({ success: true, user });
   } catch (error) {
     console.error('Token verification error:', error);
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
+// Refresh token endpoint
+router.post('/refresh', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-jwt-secret') as any;
+    
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { id: true, email: true, name: true, role: true }
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // Generate new token with same expiry as original
+    const tokenExpiry = decoded.rememberMe ? '30d' : '24h';
+    const newToken = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role, rememberMe: !!decoded.rememberMe },
+      process.env.JWT_SECRET || 'your-jwt-secret',
+      { expiresIn: tokenExpiry }
+    );
+
+    res.json({ 
+      success: true, 
+      token: newToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Token refresh error:', error);
     res.status(401).json({ error: 'Invalid token' });
   }
 });

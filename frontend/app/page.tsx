@@ -5,11 +5,21 @@ import { useState, useEffect } from 'react';
 export default function HomePage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
 
   useEffect(() => {
     setCurrentTime(new Date().toLocaleString());
+    
+    // Check for remembered user
+    const rememberedEmail = localStorage.getItem('userEmail');
+    const isRemembered = localStorage.getItem('rememberMe') === 'true';
+    
+    if (rememberedEmail && isRemembered) {
+      setEmail(rememberedEmail);
+      setRememberMe(true);
+    }
   }, []);
 
   // Get the correct API base URL based on environment
@@ -35,14 +45,24 @@ export default function HomePage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
       
       const data = await response.json();
       
       if (response.ok) {
-        // Store the token in localStorage
-        localStorage.setItem('token', data.token);
+        // Store the token based on remember me preference
+        if (rememberMe) {
+          // Store in localStorage for persistent sessions
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('rememberMe', 'true');
+          localStorage.setItem('userEmail', email);
+        } else {
+          // Store in sessionStorage for session-only storage
+          sessionStorage.setItem('token', data.token);
+          sessionStorage.setItem('rememberMe', 'false');
+        }
+        
         // Redirect to admin dashboard on successful login
         window.location.href = '/admin';
       } else {
@@ -122,6 +142,21 @@ export default function HomePage() {
                   placeholder="Enter your password"
                   required
                 />
+              </div>
+
+              {/* Remember Me Checkbox */}
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                  Remember me for 30 days
+                </label>
               </div>
 
               {/* Sign In Button */}

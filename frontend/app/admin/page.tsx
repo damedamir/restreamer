@@ -2,7 +2,128 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '../../contexts/ToastContext';
-import { SessionHandler } from '../../lib/sessionHandler';
+// Session management functions
+const getSessionData = () => {
+  // Check localStorage first (remember me)
+  let token = localStorage.getItem('token');
+  let rememberMe = localStorage.getItem('rememberMe') === 'true';
+  let userEmail = localStorage.getItem('userEmail');
+  let expiresAt = localStorage.getItem('expiresAt');
+
+  // If not found in localStorage, check sessionStorage
+  if (!token) {
+    token = sessionStorage.getItem('token');
+    rememberMe = sessionStorage.getItem('rememberMe') === 'true';
+    userEmail = sessionStorage.getItem('userEmail');
+    expiresAt = sessionStorage.getItem('expiresAt');
+  }
+
+  if (!token || !userEmail || !expiresAt) {
+    return null;
+  }
+
+  // Check if token has expired
+  const now = Date.now();
+  const expiryTime = parseInt(expiresAt);
+  
+  if (now > expiryTime) {
+    clearSession();
+    return null;
+  }
+
+  return {
+    token,
+    userEmail,
+    rememberMe,
+    expiresAt: expiryTime
+  };
+};
+
+const isAuthenticated = () => {
+  return getSessionData() !== null;
+};
+
+const getToken = () => {
+  const session = getSessionData();
+  return session?.token || null;
+};
+
+const getUserEmail = () => {
+  const session = getSessionData();
+  return session?.userEmail || null;
+};
+
+const isRememberMeEnabled = () => {
+  const session = getSessionData();
+  return session?.rememberMe || false;
+};
+
+const getTimeUntilExpiry = () => {
+  const session = getSessionData();
+  if (!session) return 0;
+  
+  return Math.max(0, session.expiresAt - Date.now());
+};
+
+const isExpiringSoon = () => {
+  const timeUntilExpiry = getTimeUntilExpiry();
+  return timeUntilExpiry > 0 && timeUntilExpiry < 60 * 60 * 1000; // 1 hour
+};
+
+const refreshSession = () => {
+  const session = getSessionData();
+  if (!session) return;
+
+  const newExpiresAt = Date.now() + (session.rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000);
+  
+  if (session.rememberMe) {
+    localStorage.setItem('expiresAt', newExpiresAt.toString());
+  } else {
+    sessionStorage.setItem('expiresAt', newExpiresAt.toString());
+  }
+};
+
+const getFormattedTimeUntilExpiry = () => {
+  const timeUntilExpiry = getTimeUntilExpiry();
+  
+  if (timeUntilExpiry <= 0) {
+    return 'Expired';
+  }
+
+  const days = Math.floor(timeUntilExpiry / (24 * 60 * 60 * 1000));
+  const hours = Math.floor((timeUntilExpiry % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+  const minutes = Math.floor((timeUntilExpiry % (60 * 60 * 1000)) / (60 * 1000));
+
+  if (days > 0) {
+    return `${days}d ${hours}h ${minutes}m`;
+  } else if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  } else {
+    return `${minutes}m`;
+  }
+};
+
+const clearSession = () => {
+  // Clear localStorage
+  localStorage.removeItem('token');
+  localStorage.removeItem('rememberMe');
+  localStorage.removeItem('userEmail');
+  localStorage.removeItem('expiresAt');
+  
+  // Clear sessionStorage
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('rememberMe');
+  sessionStorage.removeItem('userEmail');
+  sessionStorage.removeItem('expiresAt');
+};
+
+const logout = () => {
+  clearSession();
+  // Redirect to login page
+  if (typeof window !== 'undefined') {
+    window.location.href = '/';
+  }
+};
 import {
   ChartBarIcon,
   PlayIcon,
@@ -102,16 +223,16 @@ export default function AdminPage() {
   // Check authentication on component mount
   useEffect(() => {
     // Check if user is authenticated using session handler
-    if (!SessionHandler.isAuthenticated()) {
+    if (!isAuthenticated()) {
       // No valid session found, redirect to login
       window.location.href = '/';
       return;
     }
     
     // Get token from session handler
-    const token = SessionHandler.getToken();
+    const token = getToken();
     if (!token) {
-      SessionHandler.logout();
+      logout();
       return;
     }
     
@@ -133,23 +254,23 @@ export default function AdminPage() {
           loadRtmpServers();
           
           // Refresh session if it's expiring soon
-          if (SessionHandler.isExpiringSoon()) {
-            SessionHandler.refreshSession();
+          if (isExpiringSoon()) {
+refreshSession();
           }
           
           // Update session info
           setSessionInfo({
-            email: SessionHandler.getUserEmail() || '',
-            expiresIn: SessionHandler.getFormattedTimeUntilExpiry(),
-            rememberMe: SessionHandler.isRememberMeEnabled()
+            email: getUserEmail() || '',
+            expiresIn: getFormattedTimeUntilExpiry(),
+            rememberMe: isRememberMeEnabled()
           });
         } else {
           // Token is invalid, logout and redirect
-          SessionHandler.logout();
+logout();
         }
       } catch (error) {
         console.error('Token verification failed:', error);
-        SessionHandler.logout();
+logout();
       }
     };
     
@@ -158,9 +279,9 @@ export default function AdminPage() {
 
   const loadConfigurations = async () => {
     try {
-      const token = SessionHandler.getToken();
+      const token = getToken();
       if (!token) {
-        SessionHandler.logout();
+logout();
         return;
       }
       
@@ -181,9 +302,9 @@ export default function AdminPage() {
 
   const loadRtmpServers = async () => {
     try {
-      const token = SessionHandler.getToken();
+      const token = getToken();
       if (!token) {
-        SessionHandler.logout();
+logout();
         return;
       }
       const response = await fetch(`${getApiBaseUrl()}/api/rtmp-servers`, {
@@ -203,9 +324,9 @@ export default function AdminPage() {
 
   const loadBrandedUrls = async () => {
     try {
-      const token = SessionHandler.getToken();
+      const token = getToken();
       if (!token) {
-        SessionHandler.logout();
+logout();
         return;
       }
       const response = await fetch(`${getApiBaseUrl()}/api/branded-urls`, {
@@ -229,7 +350,7 @@ export default function AdminPage() {
   };
 
   const handleLogout = () => {
-    SessionHandler.logout();
+logout();
   };
 
   const createConfig = async () => {
@@ -245,9 +366,9 @@ export default function AdminPage() {
 
     setLoading(true);
     try {
-      const token = SessionHandler.getToken();
+      const token = getToken();
       if (!token) {
-        SessionHandler.logout();
+logout();
         return;
       }
       const response = await fetch(`${getApiBaseUrl()}/api/configurations`, {
@@ -285,9 +406,9 @@ export default function AdminPage() {
   const createDefaultConfig = async () => {
     setLoading(true);
     try {
-      const token = SessionHandler.getToken();
+      const token = getToken();
       if (!token) {
-        SessionHandler.logout();
+logout();
         return;
       }
       const response = await fetch(`${getApiBaseUrl()}/api/configurations/create-default`, {
@@ -317,9 +438,9 @@ export default function AdminPage() {
 
   const cloneConfig = async (config: Config) => {
     try {
-      const token = SessionHandler.getToken();
+      const token = getToken();
       if (!token) {
-        SessionHandler.logout();
+logout();
         return;
       }
       const response = await fetch(`${getApiBaseUrl()}/api/configurations/${config.id}/clone`, {
@@ -342,9 +463,9 @@ export default function AdminPage() {
 
   const deleteConfig = async (id: string) => {
     try {
-      const token = SessionHandler.getToken();
+      const token = getToken();
       if (!token) {
-        SessionHandler.logout();
+logout();
         return;
       }
       const response = await fetch(`${getApiBaseUrl()}/api/configurations/${id}`, {
@@ -367,9 +488,9 @@ export default function AdminPage() {
 
   const selectConfig = async (id: string) => {
     try {
-      const token = SessionHandler.getToken();
+      const token = getToken();
       if (!token) {
-        SessionHandler.logout();
+logout();
         return;
       }
       const response = await fetch(`${getApiBaseUrl()}/api/configurations/${id}`, {
@@ -396,9 +517,9 @@ export default function AdminPage() {
     if (!config) return;
 
     try {
-      const token = SessionHandler.getToken();
+      const token = getToken();
       if (!token) {
-        SessionHandler.logout();
+logout();
         return;
       }
       const response = await fetch(`${getApiBaseUrl()}/api/branded-urls`, {
@@ -427,9 +548,9 @@ export default function AdminPage() {
 
   const deleteBrandedUrl = async (id: string) => {
     try {
-      const token = SessionHandler.getToken();
+      const token = getToken();
       if (!token) {
-        SessionHandler.logout();
+logout();
         return;
       }
       const response = await fetch(`${getApiBaseUrl()}/api/branded-urls/${id}`, {
@@ -458,9 +579,9 @@ export default function AdminPage() {
 
     setLoading(true);
     try {
-      const token = SessionHandler.getToken();
+      const token = getToken();
       if (!token) {
-        SessionHandler.logout();
+logout();
         return;
       }
       const response = await fetch(`${getApiBaseUrl()}/api/branded-urls`, {

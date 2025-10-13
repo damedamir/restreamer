@@ -39,7 +39,7 @@ const getSessionData = () => {
   };
 };
 
-const isAuthenticated = () => {
+const checkAuthentication = () => {
   return getSessionData() !== null;
 };
 
@@ -223,7 +223,7 @@ export default function AdminPage() {
   // Check authentication on component mount
   useEffect(() => {
     // Check if user is authenticated using session handler
-    if (!isAuthenticated()) {
+    if (!checkAuthentication()) {
       // No valid session found, redirect to login
       window.location.href = '/';
       return;

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { SessionHandler } from '../lib/sessionHandler';
 
 export default function HomePage() {
   const [email, setEmail] = useState('');
@@ -88,8 +87,25 @@ export default function HomePage() {
       
       const data = await response.json();
       
-      // Use SessionHandler to store the session
-      SessionHandler.storeSession(data.token, email, rememberMe);
+      // Calculate expiry time (30 days for remember me, 24 hours for session)
+      const expiresAt = rememberMe 
+        ? Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
+        : Date.now() + (24 * 60 * 60 * 1000); // 24 hours
+      
+      // Store the token based on remember me preference
+      if (rememberMe) {
+        // Store in localStorage for persistent sessions
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('rememberMe', 'true');
+        localStorage.setItem('userEmail', email);
+        localStorage.setItem('expiresAt', expiresAt.toString());
+      } else {
+        // Store in sessionStorage for session-only storage
+        sessionStorage.setItem('token', data.token);
+        sessionStorage.setItem('rememberMe', 'false');
+        sessionStorage.setItem('userEmail', email);
+        sessionStorage.setItem('expiresAt', expiresAt.toString());
+      }
       
       // Redirect to admin dashboard on successful login
       window.location.href = '/admin';

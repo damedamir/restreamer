@@ -3,9 +3,9 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: custom_restreamer
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: restreamer_db
+      POSTGRES_USER: restreamer_user
+      POSTGRES_PASSWORD: restreamer123
     volumes:
       - postgres_data:/var/lib/postgresql/data
     # ports: # <-- REMOVED: No need to expose the database to the internet.
@@ -13,7 +13,7 @@ services:
     networks:
       - restreamer-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d custom_restreamer"]
+      test: ["CMD-SHELL", "pg_isready -U restreamer_user -d restreamer_db"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -26,7 +26,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile.final
     environment:
-      DATABASE_URL: postgresql://postgres:password@postgres:5432/custom_restreamer
+      DATABASE_URL: postgresql://restreamer_user:restreamer123@restreamer-postgres:5432/restreamer_db
       PORT: 3001
       NODE_ENV: production
       CORS_ORIGIN: http://localhost:3000,https://hive.restreamer.website
@@ -116,3 +116,4 @@ volumes:
 networks: # <-- MOVED: This block must be at the bottom.
   restreamer-network:
     driver: bridge
+

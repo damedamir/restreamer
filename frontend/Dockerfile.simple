@@ -1,24 +1,22 @@
-FROM node:20-alpine
-
+# Stage 1: Install dependencies
+FROM node:20-alpine AS deps
 WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy source code
+# Stage 2: Build the application
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Build the application
 RUN npm run build
 
-# Copy static files to standalone directory for proper serving
-RUN cp -r .next/static .next/standalone/.next/static
+# Stage 3: Final production image
+FROM node:20-alpine AS runner
+WORKDIR /app
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 
-# Expose port
 EXPOSE 3000
-
-# Start the application (use standalone server for proper static file serving)
-CMD ["node", ".next/standalone/server.js"]
+CMD ["node", "server.js"]

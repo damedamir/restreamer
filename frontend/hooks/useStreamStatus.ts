@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useWebSocket } from './useWebSocket';
+import { featureFlags } from '../lib/featureFlags';
 
 interface StreamStatus {
   isLive: boolean;
@@ -11,9 +13,10 @@ interface StreamStatus {
 interface UseStreamStatusProps {
   rtmpKey: string;
   onStatusChange?: (status: StreamStatus) => void;
+  useWebSocket?: boolean; // Feature flag for rollback
 }
 
-export function useStreamStatus({ rtmpKey, onStatusChange }: UseStreamStatusProps) {
+export function useStreamStatus({ rtmpKey, onStatusChange, useWebSocket: enableWebSocket = featureFlags.useWebSocket }: UseStreamStatusProps) {
   const [streamStatus, setStreamStatus] = useState<StreamStatus>({
     isLive: false,
     viewers: 0,
@@ -23,6 +26,34 @@ export function useStreamStatus({ rtmpKey, onStatusChange }: UseStreamStatusProp
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
   const rtmpKeyRef = useRef(rtmpKey);
+  const lastWebSocketUpdate = useRef<Date | null>(null);
+
+  // WebSocket integration
+  const { isConnected: isWebSocketConnected } = useWebSocket({
+    enabled: enableWebSocket,
+    onStreamStatusUpdate: useCallback((wsRtmpKey: string, status) => {
+      if (wsRtmpKey === rtmpKeyRef.current) {
+        console.log('📡 [WebSocket] Received status update for current stream:', status);
+        lastWebSocketUpdate.current = new Date();
+        
+        const newStatus: StreamStatus = {
+          isLive: status.isLive,
+          viewers: status.viewers,
+          lastChecked: new Date(status.lastChecked)
+        };
+        
+        setStreamStatus(prevStatus => {
+          if (prevStatus.isLive !== newStatus.isLive || 
+              prevStatus.viewers !== newStatus.viewers) {
+            console.log('📡 [WebSocket] Status changed via WebSocket, updating...');
+            onStatusChange?.(newStatus);
+            return newStatus;
+          }
+          return prevStatus;
+        });
+      }
+    }, [onStatusChange])
+  });
 
   // Memoize the API call function to prevent recreation on every render
   const checkStatus = useCallback(async () => {
@@ -120,12 +151,17 @@ export function useStreamStatus({ rtmpKey, onStatusChange }: UseStreamStatusProp
     // Check status immediately
     checkStatus();
     
-    // Set up interval for periodic checks (30 seconds - more reasonable)
-    intervalRef.current = setInterval(checkStatus, 30000);
+    // Set up interval for periodic checks
+    // If WebSocket is connected, poll less frequently (60 seconds)
+    // If WebSocket is not connected, poll more frequently (15 seconds)
+    const pollInterval = isWebSocketConnected ? 60000 : 15000;
+    console.log(`🔄 [StreamStatus] Setting poll interval to ${pollInterval}ms (WebSocket: ${isWebSocketConnected ? 'connected' : 'disconnected'})`);
+    
+    intervalRef.current = setInterval(checkStatus, pollInterval);
 
     // Return cleanup function
     return cleanup;
-  }, [rtmpKey, checkStatus, cleanup]);
+  }, [rtmpKey, checkStatus, cleanup, isWebSocketConnected]);
 
   // Cleanup on unmount
   useEffect(() => {

@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
 import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
@@ -10,6 +11,7 @@ import configurationRoutes from './routes/configurations.js';
 import brandedUrlRoutes from './routes/branded-urls.js';
 import rtmpServerRoutes from './routes/rtmp-servers.js';
 import streamStatusRoutes from './routes/stream-status.js';
+import { websocketService } from './services/websocket.js';
 
 // Load environment variables
 dotenv.config();
@@ -59,9 +61,26 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
+// Create HTTP server
+const server = createServer(app);
+
+// Initialize WebSocket
+websocketService.initialize(server);
+
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`WebSocket available at ws://localhost:${PORT}/ws`);
 });
 
-export { prisma };
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  websocketService.close();
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+export { prisma, websocketService };

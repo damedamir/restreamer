@@ -1,12 +1,21 @@
 import { Router } from 'express';
-import { prisma } from '../index.js';
+import { prisma, websocketService } from '../index.js';
 import axios from 'axios';
 
 const router = Router();
 
-// Function to send stream status updates to connected clients (WebSocket removed)
-export const sendStreamStatusUpdate = (rtmpKey: string, isLive: boolean, viewers: number) => {
-  console.log(`Stream status update for ${rtmpKey}: isLive=${isLive}, viewers=${viewers}`);
+// Function to send stream status updates to connected clients via WebSocket
+export const sendStreamStatusUpdate = async (rtmpKey: string, isLive: boolean, viewers: number) => {
+  console.log(`📡 [WebSocket] Broadcasting stream status update for ${rtmpKey}: isLive=${isLive}, viewers=${viewers}`);
+  
+  const status = {
+    isLive,
+    viewers,
+    lastChecked: new Date().toISOString(),
+    rtmpKey
+  };
+  
+  await websocketService.broadcastStreamStatus(rtmpKey, status);
 };
 
 // Check stream status by RTMP key
@@ -63,13 +72,18 @@ router.get('/:rtmpKey', async (req, res) => {
     //   // Continue without updating database if there's an error
     // }
 
-    res.json({
+    const response = {
       isLive,
       viewers,
       lastChecked: new Date(),
       rtmpKey,
       rtmpUrl: rtmpConfig.rtmpServer.rtmpUrl
-    });
+    };
+
+    // Broadcast WebSocket update
+    await sendStreamStatusUpdate(rtmpKey, isLive, viewers);
+
+    res.json(response);
   } catch (error) {
     console.error('Error checking stream status:', error);
     res.status(500).json({ error: 'Failed to check stream status' });

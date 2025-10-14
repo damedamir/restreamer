@@ -56,12 +56,12 @@ router.post('/srs-callback', async (req, res) => {
         console.log(`📡 [SRS Callback] Unknown action: ${action}`);
     }
 
-    // SRS expects a 200 response
-    res.status(200).json({ code: 0, msg: 'OK' });
+    // SRS expects a 200 response with integer 0 or JSON with code: 0
+    res.status(200).json({ code: 0 });
     
   } catch (error) {
     console.error('❌ [SRS Callback] Error processing callback:', error);
-    res.status(500).json({ code: 1, msg: 'Error processing callback' });
+    res.status(500).json({ code: 1 });
   }
 });
 

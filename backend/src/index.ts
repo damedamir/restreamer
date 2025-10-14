@@ -12,6 +12,7 @@ import brandedUrlRoutes from './routes/branded-urls.js';
 import rtmpServerRoutes from './routes/rtmp-servers.js';
 import streamStatusRoutes from './routes/stream-status.js';
 import { websocketService } from './services/websocket.js';
+import { streamMonitorService } from './services/streamMonitor.js';
 
 // Load environment variables
 dotenv.config();
@@ -67,15 +68,20 @@ const server = createServer(app);
 // Initialize WebSocket
 websocketService.initialize(server);
 
+// Start real-time stream monitoring
+streamMonitorService.startMonitoring();
+
 // Start server
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`WebSocket available at ws://localhost:${PORT}/ws`);
+  console.log(`Real-time stream monitoring started (checking every 2 seconds)`);
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully');
+  streamMonitorService.stopMonitoring();
   websocketService.close();
   server.close(() => {
     console.log('Server closed');

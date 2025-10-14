@@ -9,7 +9,7 @@ async function createDefaultConfig() {
       {
         name: 'SRS Server (Default)',
         description: 'SRS media server for live streaming',
-        rtmpUrl: 'rtmp://hive.restreamer.website:1935/live',
+        rtmpUrl: 'rtmp://restreamer.website:1935/live',
         isActive: true
       },
       {

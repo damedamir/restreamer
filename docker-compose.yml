@@ -66,7 +66,7 @@ services:
     networks:
       - restreamer-network
     volumes:
-      - ./srs-v6.conf:/usr/local/srs/conf/srs.conf
+      - ./srs-v6-fixed.conf:/usr/local/srs/conf/srs.conf
     restart: always
 
 volumes:

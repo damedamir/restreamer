@@ -59,12 +59,14 @@ services:
 
   # SRS Media Server
   srs:
-    image: ossrs/srs:5
+    image: ossrs/srs:6
     ports:
       - "1935:1935"
       - "8080:8080"
     networks:
       - restreamer-network
+    volumes:
+      - ./srs-v6.conf:/usr/local/srs/conf/srs.conf
     restart: always
 
 volumes:

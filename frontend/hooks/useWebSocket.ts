@@ -39,7 +39,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     const host = window.location.hostname;
     const port = window.location.hostname === 'localhost' ? '3001' : window.location.port;
     
-    return `${protocol}//${host}:${port}/ws`;
+    // Only include port if it exists and is not the default port
+    const portSuffix = port && port !== '80' && port !== '443' ? `:${port}` : '';
+    
+    return `${protocol}//${host}${portSuffix}/ws`;
   }, []);
 
   const connect = useCallback(() => {
@@ -92,6 +95,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
       ws.onclose = (event) => {
         console.log('🔌 [WebSocket] Disconnected:', event.code, event.reason);
+        console.log('🔌 [WebSocket] Close details:', {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+          url: wsUrl
+        });
         setIsConnected(false);
         onConnectionChange?.(false);
         
@@ -105,13 +114,19 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           }, reconnectDelay);
         } else if (reconnectAttempts.current >= maxReconnectAttempts) {
           console.log('❌ [WebSocket] Max reconnection attempts reached');
-          setConnectionError('Failed to reconnect to WebSocket');
+          setConnectionError(`Failed to reconnect to WebSocket after ${maxReconnectAttempts} attempts`);
         }
       };
 
       ws.onerror = (error) => {
         console.error('❌ [WebSocket] Error:', error);
-        setConnectionError('WebSocket connection error');
+        console.error('❌ [WebSocket] Error details:', {
+          type: error.type,
+          target: error.target,
+          url: wsUrl,
+          readyState: ws.readyState
+        });
+        setConnectionError(`WebSocket connection error: ${error.type}`);
       };
 
     } catch (error) {

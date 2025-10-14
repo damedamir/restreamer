@@ -76,5 +76,4 @@ networks:
   restreamer-network:
     driver: bridge
   nginx-network:
-    external: true
-    name: my-server_web-proxy
+    driver: bridge

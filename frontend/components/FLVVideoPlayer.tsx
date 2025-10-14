@@ -61,7 +61,7 @@ export default function FLVVideoPlayer({
       flvPlayerRef.current = null;
     }
     
-    const flvUrl = `https://hive.restreamer.website/live/${rtmpKey}.flv`;
+    const flvUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/live/${rtmpKey}.flv`;
     console.log('🔗 [FLV] FLV URL:', flvUrl);
     
     // Check if FLV.js is available

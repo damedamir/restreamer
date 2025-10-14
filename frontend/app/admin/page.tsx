@@ -1013,11 +1013,11 @@ logout();
                   <label className="block text-sm font-medium text-gray-300 mb-2">Embed Code</label>
                   <textarea
                     readOnly
-                    value={`<iframe src="https://hive.restreamer.website/embed/stream" width="800" height="450" frameborder="0" allowfullscreen></iframe>`}
+                    value={`<iframe src="${process.env.NEXT_PUBLIC_BASE_URL}/embed/stream" width="800" height="450" frameborder="0" allowfullscreen></iframe>`}
                     className="w-full h-32 px-3 py-2 bg-gray-700 text-white rounded-md border border-gray-600 font-mono text-sm"
                   />
                   <button
-                    onClick={() => copyToClipboard(`<iframe src="https://hive.restreamer.website/embed/stream" width="800" height="450" frameborder="0" allowfullscreen></iframe>`)}
+                    onClick={() => copyToClipboard(`<iframe src="${process.env.NEXT_PUBLIC_BASE_URL}/embed/stream" width="800" height="450" frameborder="0" allowfullscreen></iframe>`)}
                     className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
                   >
                     Copy Embed Code
@@ -1288,7 +1288,7 @@ logout();
                          Slug *
                        </label>
                        <div className="flex items-center space-x-2">
-                         <span className="text-sm text-gray-400">hive.restreamer.website/live/</span>
+                         <span className="text-sm text-gray-400">{process.env.NEXT_PUBLIC_BASE_URL}/live/</span>
                          <input
                            type="text"
                            value={newBrandedUrl.slug}
@@ -1297,7 +1297,7 @@ logout();
                            className="flex-1 px-3 py-2 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                          />
                        </div>
-                       <p className="text-xs text-gray-400 mt-1">This will create: hive.restreamer.website/live/{newBrandedUrl.slug || 'your-custom-slug'}</p>
+                       <p className="text-xs text-gray-400 mt-1">This will create: {process.env.NEXT_PUBLIC_BASE_URL}/live/{newBrandedUrl.slug || 'your-custom-slug'}</p>
                      </div>
 
               {/* Brand Color */}

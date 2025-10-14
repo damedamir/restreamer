@@ -23,7 +23,7 @@ const PORT = parseInt(process.env.PORT || '3001');
 app.use(helmet());
 app.use(morgan('combined'));
 app.use(cors({
-  origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000', 'https://hive.restreamer.website'],
+  origin: process.env.CORS_ORIGIN?.split(',') || [process.env.FRONTEND_URL || 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],

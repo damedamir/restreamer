@@ -6,7 +6,7 @@ const router = Router();
 
 // Generate unique branded URL from slug
 function generateBrandedUrl(slug: string): string {
-  const baseUrl = 'https://hive.restreamer.website/live';
+  const baseUrl = process.env.BASE_URL + '/live';
   const cleanSlug = slug
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')

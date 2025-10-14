@@ -28,6 +28,8 @@ export default function FLVVideoPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFLVReady, setIsFLVReady] = useState(false);
   const isDestroyed = useRef(false);
+  const lastActivityRef = useRef<number>(Date.now());
+  const activityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reset connection state when props change
   useEffect(() => {
@@ -38,6 +40,13 @@ export default function FLVVideoPlayer({
     setIsConnected(false);
     setIsPlaying(false);
     setIsFLVReady(false);
+    lastActivityRef.current = Date.now();
+    
+    // Clear activity timeout
+    if (activityTimeoutRef.current) {
+      clearTimeout(activityTimeoutRef.current);
+      activityTimeoutRef.current = null;
+    }
     
     // Clean up existing player
     if (flvPlayerRef.current) {
@@ -45,6 +54,37 @@ export default function FLVVideoPlayer({
       flvPlayerRef.current = null;
     }
   }, [rtmpKey, isLive]);
+
+  // Monitor stream activity to detect when it goes offline
+  useEffect(() => {
+    if (!isLive || !isConnected) return;
+
+    const checkActivity = () => {
+      const timeSinceLastActivity = Date.now() - lastActivityRef.current;
+      const INACTIVITY_THRESHOLD = 10000; // 10 seconds
+
+      if (timeSinceLastActivity > INACTIVITY_THRESHOLD) {
+        console.log('📡 [FLV] Stream inactive for too long, assuming offline');
+        setIsPlaying(false);
+        setIsConnected(false);
+        setIsConnecting(false);
+        return;
+      }
+
+      // Check again in 2 seconds
+      activityTimeoutRef.current = setTimeout(checkActivity, 2000);
+    };
+
+    // Start monitoring
+    activityTimeoutRef.current = setTimeout(checkActivity, 2000);
+
+    return () => {
+      if (activityTimeoutRef.current) {
+        clearTimeout(activityTimeoutRef.current);
+        activityTimeoutRef.current = null;
+      }
+    };
+  }, [isLive, isConnected]);
 
   // Start FLV playback
   const startFLVPlayback = useCallback(() => {
@@ -159,8 +199,9 @@ export default function FLVVideoPlayer({
       if (isDestroyed.current) return;
       console.log('▶️ [FLV] Play started');
       setIsPlaying(true);
-        setIsConnecting(false);
-        setIsConnected(true);
+      setIsConnecting(false);
+      setIsConnected(true);
+      lastActivityRef.current = Date.now();
     });
     
     flvPlayer.on('pause', () => {
@@ -172,6 +213,20 @@ export default function FLVVideoPlayer({
     flvPlayer.on('error', (errorType: any, errorDetail: any, errorInfo: any) => {
       if (isDestroyed.current) return;
       console.error('❌ [FLV] Player error:', errorType, errorDetail, errorInfo);
+      
+      // Check if this is a stream end error (stream went offline)
+      if (errorDetail === 'UnrecoverableEarlyEof' || 
+          errorDetail === 'NetworkError' ||
+          (errorInfo && errorInfo.msg && errorInfo.msg.includes('Early-EOF'))) {
+        console.log('📡 [FLV] Stream ended (likely went offline)');
+        // Don't show error for stream ending - just stop playback
+        setIsPlaying(false);
+        setIsConnected(false);
+        setIsConnecting(false);
+        return;
+      }
+      
+      // For other errors, show the error message
       setConnectionError(`FLV error: ${errorDetail}`);
       setIsConnecting(false);
       onError?.(`FLV error: ${errorDetail}`);
@@ -184,6 +239,7 @@ export default function FLVVideoPlayer({
         setIsPlaying(true);
         setIsConnecting(false);
         setIsConnected(true);
+        lastActivityRef.current = Date.now();
       };
       
       videoRef.current.onpause = () => {
@@ -193,6 +249,22 @@ export default function FLVVideoPlayer({
       
       videoRef.current.onerror = (e) => {
         console.error('❌ [FLV] Video error:', e);
+        const target = e.target as HTMLVideoElement;
+        const error = target.error;
+        
+        if (error) {
+          // Check if this is a network error (stream ended)
+          if (error.code === MediaError.MEDIA_ERR_NETWORK || 
+              error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+            console.log('📡 [FLV] Video network error (stream likely ended)');
+            setIsPlaying(false);
+            setIsConnected(false);
+            setIsConnecting(false);
+            return;
+          }
+        }
+        
+        // For other video errors, show the error
         setConnectionError('Video playback error');
         setIsConnecting(false);
         onError?.('Video playback error');
@@ -246,6 +318,10 @@ export default function FLVVideoPlayer({
       if (flvPlayerRef.current) {
         flvPlayerRef.current.destroy();
         flvPlayerRef.current = null;
+      }
+      if (activityTimeoutRef.current) {
+        clearTimeout(activityTimeoutRef.current);
+        activityTimeoutRef.current = null;
       }
     };
   }, []);

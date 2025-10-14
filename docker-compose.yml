@@ -61,8 +61,6 @@ services:
     ports:
       - "1935:1935"
       - "8080:8080"
-    volumes:
-      - ./nginx/srs-minimal.conf:/usr/local/srs/conf/srs.conf
     networks:
       - restreamer-network
     restart: always

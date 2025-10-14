@@ -23,6 +23,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.final
+    ports:
+      - "3001:3001"
     environment:
       DATABASE_URL: postgresql://restreamer_user:restreamer123@custom-restreamer-postgres-1:5432/restreamer_db
       PORT: 3001
@@ -39,7 +41,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

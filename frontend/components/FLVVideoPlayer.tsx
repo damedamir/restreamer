@@ -159,6 +159,8 @@ export default function FLVVideoPlayer({
       if (isDestroyed.current) return;
       console.log('▶️ [FLV] Play started');
       setIsPlaying(true);
+        setIsConnecting(false);
+        setIsConnected(true);
     });
     
     flvPlayer.on('pause', () => {
@@ -180,6 +182,8 @@ export default function FLVVideoPlayer({
       videoRef.current.onplay = () => {
         console.log('▶️ [FLV] Video playing');
         setIsPlaying(true);
+        setIsConnecting(false);
+        setIsConnected(true);
       };
       
       videoRef.current.onpause = () => {

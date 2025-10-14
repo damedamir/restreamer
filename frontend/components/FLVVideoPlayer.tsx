@@ -247,7 +247,7 @@ export default function FLVVideoPlayer({
         setIsPlaying(false);
       };
       
-      videoRef.current.onerror = (e) => {
+      videoRef.current.onerror = (e: Event) => {
         console.error('❌ [FLV] Video error:', e);
         const target = e.target as HTMLVideoElement;
         const error = target.error;

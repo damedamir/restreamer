@@ -17,7 +17,6 @@ const sendMessageSchema = z.object({
 });
 
 const getMessagesSchema = z.object({
-  rtmpKey: z.string().min(1),
   limit: z.string().optional().transform(val => val ? parseInt(val) : 50),
   offset: z.string().optional().transform(val => val ? parseInt(val) : 0),
   chatType: z.enum(['PUBLIC', 'PRIVATE']).optional()

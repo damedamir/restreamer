@@ -1,5 +1,6 @@
+version: '3.8'
+
 services:
-  # Database
   postgres:
     image: postgres:16-alpine
     environment:
@@ -13,12 +14,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U restreamer_user -d restreamer_db"]
       interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 30s
-    restart: always
+      timeout: 5s
+      retries: 5
 
-  # Backend API
   backend:
     build:
       context: ./backend
@@ -27,37 +25,29 @@ services:
       - "3001:3001"
     environment:
       DATABASE_URL: postgresql://restreamer_user:restreamer123@custom-restreamer-postgres-1:5432/restreamer_db
-      PORT: 3001
-      NODE_ENV: production
-      CORS_ORIGIN: http://localhost:3000,https://hive.restreamer.website
-      WEBHOOK_SECRET: your-secret-key
-      JWT_SECRET: your-jwt-secret
-      PUBLIC_HLS_URL: https://hive.restreamer.website/hls
-    networks:
-      - restreamer-network
-      - nginx-network
+      API_BASE_URL: https://restreamer.website
+      FRONTEND_URL: https://restreamer.website
+      CORS_ORIGIN: https://restreamer.website
     depends_on:
       postgres:
         condition: service_healthy
-    restart: always
+    networks:
+      - restreamer-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
 
-  # Frontend
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.simple
+    environment:
+      NEXT_PUBLIC_BASE_URL: https://restreamer.website
     networks:
       - restreamer-network
-      - nginx-network
-    restart: always
 
-  # SRS Media Server
   srs:
     image: ossrs/srs:6
     ports:
@@ -66,7 +56,8 @@ services:
     networks:
       - restreamer-network
     volumes:
-      - ./srs-v6-ip.conf:/usr/local/srs/conf/srs.conf
+      - ./srs-v6-flv-correct.conf:/usr/local/srs/conf/srs.conf
+    command: ["./objs/srs", "-c", "conf/srs.conf"]
     restart: always
 
 volumes:
@@ -74,6 +65,4 @@ volumes:
 
 networks:
   restreamer-network:
-    driver: bridge
-  nginx-network:
     driver: bridge

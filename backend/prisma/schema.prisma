@@ -13,12 +13,14 @@ model User {
   email     String   @unique
   password  String
   name      String
-  role      String   @default("USER")
+  role      String   @default("USER") // USER, ADMIN, MODERATOR, PANELIST, HOST, CO_HOST
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   streams Stream[]
   rtmpConfigurations RtmpConfiguration[]
+  chatMessages ChatMessage[]
+  chatPermissions ChatPermission[]
 
   @@map("users")
 }
@@ -82,6 +84,7 @@ model RtmpConfiguration {
   streamStatus StreamStatus?
   chatMessages ChatMessage[]
   chatConfiguration ChatConfiguration?
+  chatPermissions ChatPermission[]
 
   @@map("rtmp_configurations")
 }
@@ -138,25 +141,33 @@ model ChatUser {
   email     String?
   sessionId String   @unique
   isBanned  Boolean  @default(false)
+  role      String   @default("VIEWER") // VIEWER, PANELIST, HOST, CO_HOST
+  userId    String?  // Link to User if authenticated
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   messages ChatMessage[]
+  user     User?     @relation(fields: [userId], references: [id])
 
   @@map("chat_users")
 }
 
 model ChatMessage {
-  id        String   @id @default(cuid())
-  content   String
+  id           String   @id @default(cuid())
+  content      String
   rtmpConfigId String
-  userId    String
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId       String
+  chatType     String   @default("PUBLIC") // PUBLIC, PRIVATE
+  isDeleted    Boolean  @default(false)
+  isPinned     Boolean  @default(false)
+  replyToId    String?  // For threaded messages
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   rtmpConfig RtmpConfiguration @relation(fields: [rtmpConfigId], references: [id])
   user       ChatUser          @relation(fields: [userId], references: [id])
+  replyTo    ChatMessage?      @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies    ChatMessage[]     @relation("MessageReplies")
 
   @@map("chat_messages")
 }
@@ -169,10 +180,32 @@ model ChatConfiguration {
   maxMessageLength  Int      @default(2000)
   isEnabled         Boolean  @default(true)
   moderationEnabled Boolean  @default(true)
+  allowPrivateChat  Boolean  @default(true)
+  allowPublicChat   Boolean  @default(true)
+  chatOnline        Boolean  @default(false) // Tied to stream status
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   rtmpConfig RtmpConfiguration @relation(fields: [rtmpConfigId], references: [id])
 
   @@map("chat_configurations")
+}
+
+model ChatPermission {
+  id           String   @id @default(cuid())
+  userId       String
+  rtmpConfigId String
+  canModerate  Boolean  @default(false)
+  canBanUsers  Boolean  @default(false)
+  canDeleteMessages Boolean @default(false)
+  canPinMessages Boolean @default(false)
+  canAccessPrivateChat Boolean @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user       User            @relation(fields: [userId], references: [id])
+  rtmpConfig RtmpConfiguration @relation(fields: [rtmpConfigId], references: [id])
+
+  @@unique([userId, rtmpConfigId])
+  @@map("chat_permissions")
 }

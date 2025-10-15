@@ -17,6 +17,8 @@ export default function Chat({ rtmpKey, className = '' }: ChatProps) {
   });
   const [showUserForm, setShowUserForm] = useState(true);
   const [isFormValid, setIsFormValid] = useState(false);
+  const [chatType, setChatType] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
+  const [userRole, setUserRole] = useState('VIEWER');
   
   const {
     messages,
@@ -52,7 +54,8 @@ export default function Chat({ rtmpKey, className = '' }: ChatProps) {
     await sendMessage(message.trim(), {
       firstName: userInfo.firstName.trim(),
       lastName: userInfo.lastName.trim() || undefined,
-      email: userInfo.email.trim() || undefined
+      email: userInfo.email.trim() || undefined,
+      chatType: chatType
     });
     
     setMessage('');
@@ -95,7 +98,7 @@ export default function Chat({ rtmpKey, className = '' }: ChatProps) {
     <div className={`bg-white h-full flex flex-col ${className}`}>
       {/* Chat Header */}
       <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">Live Chat</h3>
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${isWebSocketConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
@@ -104,6 +107,21 @@ export default function Chat({ rtmpKey, className = '' }: ChatProps) {
             </span>
           </div>
         </div>
+        
+        {/* Chat Type Selector */}
+        {config?.allowPrivateChat && config?.allowPublicChat && (
+          <div className="flex items-center space-x-2">
+            <label className="text-sm text-gray-600">Chat Type:</label>
+            <select
+              value={chatType}
+              onChange={(e) => setChatType(e.target.value as 'PUBLIC' | 'PRIVATE')}
+              className="text-sm border border-gray-300 rounded px-2 py-1"
+            >
+              <option value="PUBLIC">Public</option>
+              <option value="PRIVATE">Private</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Messages Area */}
@@ -114,10 +132,25 @@ export default function Chat({ rtmpKey, className = '' }: ChatProps) {
             <div>Be the first to post a comment!</div>
           </div>
         ) : (
-          messages.map((msg) => (
+          messages
+            .filter(msg => {
+              // Filter messages based on chat type and user role
+              if (msg.chatType === 'PRIVATE') {
+                return ['HOST', 'CO_HOST', 'PANELIST', 'ADMIN', 'MODERATOR'].includes(userRole);
+              }
+              return true;
+            })
+            .map((msg) => (
             <div key={msg.id} className="flex space-x-3">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
+                  msg.user.role === 'ADMIN' ? 'bg-red-500' :
+                  msg.user.role === 'MODERATOR' ? 'bg-orange-500' :
+                  msg.user.role === 'HOST' ? 'bg-blue-500' :
+                  msg.user.role === 'CO_HOST' ? 'bg-purple-500' :
+                  msg.user.role === 'PANELIST' ? 'bg-green-500' :
+                  'bg-gray-500'
+                }`}>
                   {msg.user.firstName.charAt(0).toUpperCase()}
                 </div>
               </div>
@@ -125,6 +158,23 @@ export default function Chat({ rtmpKey, className = '' }: ChatProps) {
                 <div className="flex items-center space-x-2">
                   <span className="text-sm font-medium text-gray-900">
                     {getUserDisplayName(msg.user)}
+                  </span>
+                  {msg.user.role !== 'VIEWER' && (
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      msg.user.role === 'ADMIN' ? 'bg-red-100 text-red-800' :
+                      msg.user.role === 'MODERATOR' ? 'bg-orange-100 text-orange-800' :
+                      msg.user.role === 'HOST' ? 'bg-blue-100 text-blue-800' :
+                      msg.user.role === 'CO_HOST' ? 'bg-purple-100 text-purple-800' :
+                      msg.user.role === 'PANELIST' ? 'bg-green-100 text-green-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {msg.user.role}
+                    </span>
+                  )}
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    msg.chatType === 'PRIVATE' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {msg.chatType}
                   </span>
                   <span className="text-xs text-gray-500">
                     {formatTime(msg.createdAt)}

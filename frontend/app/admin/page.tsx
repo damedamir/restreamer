@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '../../contexts/ToastContext';
+import AdminChat from '../../components/AdminChat';
 // Session management functions
 const getSessionData = () => {
   // Check localStorage first (remember me)
@@ -707,7 +708,7 @@ logout();
       <div className="bg-gray-800 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8">
-            {['Configs', 'Customize', 'URLs', 'Embed', 'RTMP'].map((tab) => (
+            {['Configs', 'Customize', 'URLs', 'Embed', 'RTMP', 'Chat'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -1070,6 +1071,15 @@ logout();
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'Chat' && (
+          <div className="space-y-6">
+            <h2 className="text-lg font-semibold text-white">Live Chat Management</h2>
+            <div className="bg-gray-800 rounded-lg border border-gray-700 h-[600px]">
+              <AdminChat rtmpKey={selectedConfig?.rtmpKey || ''} />
             </div>
           </div>
         )}

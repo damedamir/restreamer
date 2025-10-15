@@ -8,13 +8,24 @@ interface ChatUser {
   firstName: string;
   lastName?: string;
   email?: string;
+  role: string;
 }
 
 interface ChatMessage {
   id: string;
   content: string;
+  chatType: 'PUBLIC' | 'PRIVATE';
+  isPinned: boolean;
   createdAt: string;
   user: ChatUser;
+  replyTo?: {
+    id: string;
+    content: string;
+    user: {
+      firstName: string;
+      lastName?: string;
+    };
+  };
 }
 
 interface ChatConfig {
@@ -23,6 +34,9 @@ interface ChatConfig {
   requireLastName: boolean;
   maxMessageLength: number;
   moderationEnabled: boolean;
+  allowPrivateChat: boolean;
+  allowPublicChat: boolean;
+  chatOnline: boolean;
 }
 
 interface UseChatProps {
@@ -109,7 +123,7 @@ export function useChat({ rtmpKey, onMessage }: UseChatProps) {
   }, [rtmpKey, loadConfig, loadMessages]);
 
   // Send message
-  const sendMessage = useCallback(async (content: string, userInfo: { firstName: string; lastName?: string; email?: string }) => {
+  const sendMessage = useCallback(async (content: string, userInfo: { firstName: string; lastName?: string; email?: string; chatType?: 'PUBLIC' | 'PRIVATE' }) => {
     if (!config?.isEnabled || isSending) return;
 
     setIsSending(true);
@@ -127,7 +141,8 @@ export function useChat({ rtmpKey, onMessage }: UseChatProps) {
           lastName: userInfo.lastName,
           email: userInfo.email,
           sessionId: sessionIdRef.current,
-          rtmpKey
+          rtmpKey,
+          chatType: userInfo.chatType || 'PUBLIC'
         }),
       });
 

@@ -10,12 +10,23 @@ interface StreamStatus {
 interface ChatMessage {
   id: string;
   content: string;
+  chatType: 'PUBLIC' | 'PRIVATE';
+  isPinned: boolean;
   createdAt: string;
   user: {
     id: string;
     firstName: string;
     lastName?: string;
     email?: string;
+    role: string;
+  };
+  replyTo?: {
+    id: string;
+    content: string;
+    user: {
+      firstName: string;
+      lastName?: string;
+    };
   };
 }
 

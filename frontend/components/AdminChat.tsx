@@ -273,7 +273,7 @@ export default function AdminChat({ rtmpKey, className = '' }: AdminChatProps) {
                   <span className="text-sm font-medium text-gray-900">
                     {getUserDisplayName(msg.user)}
                   </span>
-                  <span className={`text-xs px-2 py-1 rounded ${getRoleColor(msg.role)} text-white`}>
+                  <span className={`text-xs px-2 py-1 rounded ${getRoleColor(msg.user.role)} text-white`}>
                     {msg.user.role}
                   </span>
                   <span className={`text-xs px-2 py-1 rounded ${

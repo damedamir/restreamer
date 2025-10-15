@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import WebRTCVideoPlayer from '../../../components/WebRTCVideoPlayer';
+import Chat from '../../../components/Chat';
 import { useStreamStatus } from '../../../hooks/useStreamStatus';
 
 interface BrandedUrl {
@@ -156,11 +157,11 @@ export default function BrandedStreamPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 max-w-6xl mx-auto px-4 py-6 w-full">
-        <div className="relative">
-          {/* Video Player Container */}
-          <div className="relative w-full bg-black rounded-lg overflow-hidden shadow-2xl">
-            <div className="aspect-video relative">
+      <div className="flex-1 max-w-7xl mx-auto px-4 py-6 w-full">
+        <div className="flex gap-6 h-[600px]">
+          {/* Video Player Container - Left 2/3 */}
+          <div className="flex-1 relative">
+            <div className="relative w-full h-full bg-black rounded-lg overflow-hidden shadow-2xl">
               {streamStatus.isLive && brandedUrl.rtmpConfig ? (
                 <WebRTCVideoPlayer
                   rtmpUrl={brandedUrl.rtmpConfig.rtmpServer.rtmpUrl}
@@ -194,6 +195,11 @@ export default function BrandedStreamPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Chat Sidebar - Right 1/3 */}
+          <div className="w-80 flex-shrink-0">
+            <Chat rtmpKey={brandedUrl.rtmpConfig?.rtmpKey || ''} />
           </div>
         </div>
       </div>

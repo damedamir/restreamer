@@ -12,6 +12,7 @@ import brandedUrlRoutes from './routes/branded-urls.js';
 import rtmpServerRoutes from './routes/rtmp-servers.js';
 import streamStatusRoutes from './routes/stream-status.js';
 import srsCallbackRoutes from './routes/srs-callbacks.js';
+import chatRoutes from './routes/chat.js';
 import { websocketService } from './services/websocket.js';
 // import { streamMonitorService } from './services/streamMonitor.js';
 
@@ -42,6 +43,7 @@ app.use('/api/configurations', configurationRoutes);
 app.use('/api/branded-urls', brandedUrlRoutes);
 app.use('/api/rtmp-servers', rtmpServerRoutes);
 app.use('/api/stream-status', streamStatusRoutes);
+app.use('/api/chat', chatRoutes);
 app.use('/api', srsCallbackRoutes);
 
 // Health check endpoint

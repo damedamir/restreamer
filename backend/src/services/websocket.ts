@@ -10,6 +10,22 @@ interface StreamStatusUpdate {
   lastChecked: string;
 }
 
+interface ChatMessageUpdate {
+  type: 'chat_message';
+  rtmpKey: string;
+  message: {
+    id: string;
+    content: string;
+    createdAt: string;
+    user: {
+      id: string;
+      firstName: string;
+      lastName?: string;
+      email?: string;
+    };
+  };
+}
+
 class WebSocketService {
   private wss: WebSocketServer | null = null;
   private clients: Set<WebSocket> = new Set();
@@ -89,6 +105,32 @@ class WebSocketService {
       lastChecked: status.lastChecked
     };
 
+    this.broadcast(message);
+    console.log(`📡 [WebSocket] Broadcasted status for ${rtmpKey}:`, status.isLive ? 'LIVE' : 'OFFLINE');
+  }
+
+  async broadcastChatMessage(rtmpKey: string, message: any) {
+    const chatMessage: ChatMessageUpdate = {
+      type: 'chat_message',
+      rtmpKey,
+      message: {
+        id: message.id,
+        content: message.content,
+        createdAt: message.createdAt,
+        user: {
+          id: message.user.id,
+          firstName: message.user.firstName,
+          lastName: message.user.lastName,
+          email: message.user.email
+        }
+      }
+    };
+
+    this.broadcast(chatMessage);
+    console.log(`💬 [WebSocket] Broadcasted chat message for ${rtmpKey}`);
+  }
+
+  private broadcast(message: any) {
     const messageStr = JSON.stringify(message);
     const deadClients: WebSocket[] = [];
 
@@ -107,8 +149,6 @@ class WebSocketService {
 
     // Clean up dead clients
     deadClients.forEach(ws => this.clients.delete(ws));
-
-    console.log(`📡 [WebSocket] Broadcasted status for ${rtmpKey}:`, status.isLive ? 'LIVE' : 'OFFLINE');
   }
 
   getClientCount(): number {

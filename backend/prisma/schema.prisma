@@ -80,6 +80,8 @@ model RtmpConfiguration {
   rtmpServer RtmpServer  @relation(fields: [rtmpServerId], references: [id])
   brandedUrls BrandedUrl[]
   streamStatus StreamStatus?
+  chatMessages ChatMessage[]
+  chatConfiguration ChatConfiguration?
 
   @@map("rtmp_configurations")
 }
@@ -127,4 +129,50 @@ model Viewer {
   leftAt    DateTime?
 
   @@map("viewers")
+}
+
+model ChatUser {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String?
+  email     String?
+  sessionId String   @unique
+  isBanned  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages ChatMessage[]
+
+  @@map("chat_users")
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  content   String
+  rtmpConfigId String
+  userId    String
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rtmpConfig RtmpConfiguration @relation(fields: [rtmpConfigId], references: [id])
+  user       ChatUser          @relation(fields: [userId], references: [id])
+
+  @@map("chat_messages")
+}
+
+model ChatConfiguration {
+  id                String   @id @default(cuid())
+  rtmpConfigId      String   @unique
+  requireEmail      Boolean  @default(false)
+  requireLastName   Boolean  @default(false)
+  maxMessageLength  Int      @default(2000)
+  isEnabled         Boolean  @default(true)
+  moderationEnabled Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  rtmpConfig RtmpConfiguration @relation(fields: [rtmpConfigId], references: [id])
+
+  @@map("chat_configurations")
 }

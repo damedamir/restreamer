@@ -7,23 +7,37 @@ interface StreamStatus {
   rtmpKey: string;
 }
 
+interface ChatMessage {
+  id: string;
+  content: string;
+  createdAt: string;
+  user: {
+    id: string;
+    firstName: string;
+    lastName?: string;
+    email?: string;
+  };
+}
+
 interface WebSocketMessage {
-  type: 'stream_status' | 'initial_statuses';
+  type: 'stream_status' | 'initial_statuses' | 'chat_message';
   rtmpKey?: string;
   isLive?: boolean;
   viewers?: number;
   lastChecked?: string;
   statuses?: StreamStatus[];
+  message?: ChatMessage;
 }
 
 interface UseWebSocketOptions {
   enabled?: boolean;
   onStreamStatusUpdate?: (rtmpKey: string, status: StreamStatus) => void;
+  onChatMessage?: (rtmpKey: string, message: ChatMessage) => void;
   onConnectionChange?: (connected: boolean) => void;
 }
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
-  const { enabled = true, onStreamStatusUpdate, onConnectionChange } = options;
+  const { enabled = true, onStreamStatusUpdate, onChatMessage, onConnectionChange } = options;
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -87,6 +101,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
             message.statuses.forEach(status => {
               onStreamStatusUpdate?.(status.rtmpKey, status);
             });
+          } else if (message.type === 'chat_message' && message.rtmpKey && message.message) {
+            console.log('💬 [WebSocket] Received chat message:', message.message);
+            onChatMessage?.(message.rtmpKey, message.message);
           }
         } catch (error) {
           console.error('❌ [WebSocket] Error parsing message:', error);

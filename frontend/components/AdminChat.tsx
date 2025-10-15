@@ -264,7 +264,7 @@ export default function AdminChat({ rtmpKey, className = '' }: AdminChatProps) {
           messages.map((msg) => (
             <div key={msg.id} className={`flex space-x-3 ${msg.isPinned ? 'bg-yellow-50 border-l-4 border-yellow-400 pl-3' : ''}`}>
               <div className="flex-shrink-0">
-                <div className={`w-8 h-8 ${getRoleColor(msg.role)} rounded-full flex items-center justify-center text-white text-sm font-medium`}>
+                <div className={`w-8 h-8 ${getRoleColor(msg.user.role)} rounded-full flex items-center justify-center text-white text-sm font-medium`}>
                   {msg.user.firstName.charAt(0).toUpperCase()}
                 </div>
               </div>

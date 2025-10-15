@@ -293,7 +293,7 @@ export default function AdminChat({ rtmpKey, className = '' }: AdminChatProps) {
                 </p>
                 {msg.replyTo && (
                   <div className="mt-2 p-2 bg-gray-100 rounded text-xs text-gray-600">
-                    <span className="font-medium">Replying to {getUserDisplayName(msg.replyTo.user)}:</span> {msg.replyTo.content}
+                    <span className="font-medium">Replying to {msg.replyTo.user.firstName} {msg.replyTo.user.lastName || ''}:</span> {msg.replyTo.content}
                   </div>
                 )}
                 <div className="mt-2 flex space-x-2">

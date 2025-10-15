@@ -19,8 +19,8 @@ model User {
 
   streams Stream[]
   rtmpConfigurations RtmpConfiguration[]
-  chatMessages ChatMessage[]
   chatPermissions ChatPermission[]
+  chatUsers ChatUser[]
 
   @@map("users")
 }

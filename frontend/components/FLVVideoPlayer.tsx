@@ -79,27 +79,14 @@ export default function FLVVideoPlayer({
       flvPlayerRef.current = null;
     }
     
-    // Use main domain with FLV path to avoid mixed content issues
-    const flvUrl = `https://restreamer.website/flv/${rtmpKey}.flv`;
-    console.log('🔗 [FLV] FLV URL:', flvUrl);
+    // Try HTTPS first, fallback to HTTP for mixed content
+    const httpsUrl = `https://restreamer.website:8081/live/${rtmpKey}.flv`;
+    const httpUrl = `http://restreamer.website:8081/live/${rtmpKey}.flv`;
     
-    // First check if the stream is available
-    try {
-      const response = await fetch(flvUrl, { method: 'HEAD' });
-      if (!response.ok) {
-        console.log('❌ [FLV] Stream not available:', response.status);
-        setConnectionError('Stream not available');
-        setIsConnecting(false);
-        onError?.('Stream not available');
-        return;
-      }
-    } catch (error) {
-      console.log('❌ [FLV] Stream check failed:', error);
-      setConnectionError('Stream check failed');
-      setIsConnecting(false);
-      onError?.('Stream check failed');
-      return;
-    }
+    // For now, use HTTP since SRS doesn't have SSL
+    const flvUrl = httpUrl;
+    console.log('🔗 [FLV] FLV URL:', flvUrl);
+    console.log('⚠️ [FLV] Using HTTP - browser may show mixed content warning');
     
     // Check if FLV.js is available
     if (typeof window === 'undefined') {
@@ -223,9 +210,17 @@ export default function FLVVideoPlayer({
       }
       
       // For other errors, show the error message
-      setConnectionError(`FLV error: ${errorDetail}`);
+      let errorMessage = `FLV error: ${errorDetail}`;
+      
+      // Check if it's a mixed content error
+      if (errorDetail === 'NetworkError' || errorInfo?.msg?.includes('Mixed Content')) {
+        errorMessage = 'Mixed Content Error: Please allow insecure content or use HTTP instead of HTTPS';
+        console.log('🔒 [FLV] Mixed content detected - browser blocked HTTP resource on HTTPS page');
+      }
+      
+      setConnectionError(errorMessage);
       setIsConnecting(false);
-      onError?.(`FLV error: ${errorDetail}`);
+      onError?.(errorMessage);
       
       // Destroy player to prevent error spam
       if (flvPlayerRef.current) {

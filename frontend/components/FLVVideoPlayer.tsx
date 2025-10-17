@@ -33,10 +33,18 @@ export default function FLVVideoPlayer({
   const getBaseUrl = () => {
     if (typeof window !== 'undefined') {
       // Client-side: use current origin or environment variable
-      return process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
+      const envUrl = process.env.NEXT_PUBLIC_BASE_URL;
+      if (envUrl && envUrl !== 'undefined') {
+        return envUrl;
+      }
+      return window.location.origin;
     }
-    // Server-side: use environment variable
-    return process.env.NEXT_PUBLIC_BASE_URL || 'https://restreamer.website';
+    // Server-side: use environment variable with fallback
+    const envUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    if (envUrl && envUrl !== 'undefined') {
+      return envUrl;
+    }
+    return 'https://restreamer.website';
   };
 
   // Reset connection state when props change

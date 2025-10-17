@@ -79,14 +79,29 @@ export default function FLVVideoPlayer({
       flvPlayerRef.current = null;
     }
     
-    // Try HTTPS first, fallback to HTTP for mixed content
-    const httpsUrl = `https://restreamer.website:8081/live/${rtmpKey}.flv`;
-    const httpUrl = `http://restreamer.website:8081/live/${rtmpKey}.flv`;
-    
-    // For now, use HTTP since SRS doesn't have SSL
-    const flvUrl = httpUrl;
+    // Use HTTPS through Traefik proxy
+    const flvUrl = `https://restreamer.website/live/${rtmpKey}.flv`;
     console.log('🔗 [FLV] FLV URL:', flvUrl);
-    console.log('⚠️ [FLV] Using HTTP - browser may show mixed content warning');
+    console.log('✅ [FLV] Using HTTPS through Traefik proxy');
+    
+    // Check if the stream is available
+    try {
+      const response = await fetch(flvUrl, { method: 'HEAD' });
+      if (!response.ok) {
+        console.log('❌ [FLV] Stream not available:', response.status);
+        setConnectionError('Stream not available');
+        setIsConnecting(false);
+        onError?.('Stream not available');
+        return;
+      }
+      console.log('✅ [FLV] Stream is available');
+    } catch (error) {
+      console.log('❌ [FLV] Stream check failed:', error);
+      setConnectionError('Stream check failed');
+      setIsConnecting(false);
+      onError?.('Stream check failed');
+      return;
+    }
     
     // Check if FLV.js is available
     if (typeof window === 'undefined') {
@@ -210,14 +225,7 @@ export default function FLVVideoPlayer({
       }
       
       // For other errors, show the error message
-      let errorMessage = `FLV error: ${errorDetail}`;
-      
-      // Check if it's a mixed content error
-      if (errorDetail === 'NetworkError' || errorInfo?.msg?.includes('Mixed Content')) {
-        errorMessage = 'Mixed Content Error: Please allow insecure content or use HTTP instead of HTTPS';
-        console.log('🔒 [FLV] Mixed content detected - browser blocked HTTP resource on HTTPS page');
-      }
-      
+      const errorMessage = `FLV error: ${errorDetail}`;
       setConnectionError(errorMessage);
       setIsConnecting(false);
       onError?.(errorMessage);

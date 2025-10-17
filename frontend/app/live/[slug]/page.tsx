@@ -48,9 +48,11 @@ export default function BrandedStreamPage() {
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         return 'http://localhost:3001';
       }
+      // Production: use relative URLs with /api prefix
+      return '/api';
     }
-    // Server-side or production: use relative URLs (will be proxied by nginx)
-    return '';
+    // Server-side: use relative URLs with /api prefix
+    return '/api';
   };
 
   // Fetch branded URL configuration

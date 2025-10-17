@@ -22,7 +22,7 @@ The script will ask you for:
 ./deploy.sh
 ```
 
-### 4. Setup Default Data
+### 4. Setup Default Data (includes database schema creation)
 ```bash
 ./setup-default-config.sh
 ```
@@ -38,10 +38,9 @@ The script will ask you for:
 
 ### 📁 Generated Files
 - `.env` - Environment variables with your domain
-- `docker-compose.production.yml` - Production configuration
-- `docker-compose.server.yml` - Server configuration (without Traefik)
+- `docker-compose.production.yml` - Production configuration (works with or without Traefik)
 - `deploy.sh` - Deployment script
-- `setup-default-config.sh` - Default data setup
+- `setup-default-config.sh` - Default data setup (includes database schema creation)
 
 ### 🔐 Security Features
 - **Random JWT secret** generation

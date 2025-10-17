@@ -125,6 +125,5 @@ docker-compose.production.yml
 # Generated configuration files
 .env
 docker-compose.production.yml
-docker-compose.server.yml
 deploy.sh
 setup-default-config.sh

@@ -396,87 +396,6 @@ fi
 
 print_status "Production docker-compose.yml created"
 
-# Create server docker-compose.yml (without Traefik labels)
-print_info "Creating server docker-compose.yml..."
-cat > docker-compose.server.yml << EOF
-version: '3.8'
-
-services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: restreamer-postgres
-    environment:
-      POSTGRES_DB: restreamer_db
-      POSTGRES_USER: restreamer_user
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - restreamer-network
-    restart: always
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U restreamer_user -d restreamer_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.final
-    container_name: restreamer-backend
-    environment:
-      DATABASE_URL: "postgresql://restreamer_user:${DB_PASSWORD}@restreamer-postgres:5432/restreamer_db"
-      JWT_SECRET: "${JWT_SECRET}"
-      NODE_ENV: "production"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - restreamer-network
-    ports:
-      - "3001:3001"
-    restart: always
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.simple
-    container_name: restreamer-frontend
-    environment:
-      NEXT_PUBLIC_BASE_URL: ${PROTOCOL}://${DOMAIN}
-    networks:
-      - restreamer-network
-    ports:
-      - "3000:3000"
-    restart: always
-
-  srs:
-    image: ossrs/srs:6
-    container_name: restreamer-srs
-    ports:
-      - "1935:1935"
-      - "8082:8080"
-      - "10080:10080/udp"
-      - "8000:8000/udp"
-      - "9000:9000"
-      - "5060:5060"
-    volumes:
-      - ./srs-v6-flv-correct.conf:/usr/local/srs/conf/srs.conf
-    command: ["./objs/srs", "-c", "conf/srs.conf"]
-    networks:
-      - restreamer-network
-    restart: always
-
-volumes:
-  postgres_data:
-
-networks:
-  restreamer-network:
-    driver: bridge
-EOF
-
-print_status "Server docker-compose.yml created"
 
 # Create deployment script
 print_info "Creating deployment script..."
@@ -538,6 +457,13 @@ echo "🔧 Setting up default configuration..."
 # Wait for backend to be ready
 echo "⏳ Waiting for backend to be ready..."
 sleep 10
+
+# Create database schema first
+echo "🗄️  Creating database schema..."
+docker exec restreamer-backend npx prisma db push
+
+# Wait a moment for schema to be created
+sleep 5
 
 # Create default admin user
 echo "👤 Creating default admin user..."

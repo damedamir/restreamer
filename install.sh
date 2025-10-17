@@ -53,6 +53,29 @@ fi
 
 print_status "Docker and Docker Compose are installed"
 
+# Detect existing Traefik setup
+print_info "Detecting existing Traefik configuration..."
+TRAEFIK_DETECTED=false
+WEB_PROXY_NETWORK_EXISTS=false
+
+# Check if web-proxy network exists
+if docker network ls | grep -q "web-proxy"; then
+    WEB_PROXY_NETWORK_EXISTS=true
+    print_status "Found existing web-proxy network"
+fi
+
+# Check if Traefik container is running
+if docker ps | grep -q "traefik"; then
+    TRAEFIK_DETECTED=true
+    print_status "Found running Traefik container"
+fi
+
+# Check if Traefik compose file exists
+if [ -f "docker-compose.traefik.yml" ] || [ -f "traefik.yml" ] || [ -f "traefik/docker-compose.yml" ]; then
+    TRAEFIK_DETECTED=true
+    print_status "Found Traefik configuration files"
+fi
+
 echo ""
 echo "📋 Configuration Setup"
 echo "======================"
@@ -88,6 +111,54 @@ case $PROTOCOL_CHOICE in
         ;;
 esac
 
+# Traefik configuration
+echo ""
+echo "Traefik Configuration:"
+if [ "$TRAEFIK_DETECTED" = true ]; then
+    echo "✅ Traefik detected on this server"
+    if [ "$WEB_PROXY_NETWORK_EXISTS" = true ]; then
+        echo "✅ web-proxy network found"
+        USE_TRAEFIK=true
+    else
+        echo "⚠️  Traefik detected but web-proxy network missing"
+        echo "1) Create web-proxy network and use Traefik"
+        echo "2) Use direct port mapping (no Traefik)"
+        read -p "Choose option [1-2]: " TRAEFIK_CHOICE
+        case $TRAEFIK_CHOICE in
+            1)
+                USE_TRAEFIK=true
+                ;;
+            2)
+                USE_TRAEFIK=false
+                ;;
+            *)
+                USE_TRAEFIK=true
+                print_warning "Invalid choice, defaulting to Traefik"
+                ;;
+        esac
+    fi
+else
+    echo "❌ No Traefik detected"
+    echo "1) Install and configure Traefik"
+    echo "2) Use direct port mapping (no Traefik)"
+    read -p "Choose option [1-2]: " TRAEFIK_CHOICE
+    case $TRAEFIK_CHOICE in
+        1)
+            USE_TRAEFIK=true
+            INSTALL_TRAEFIK=true
+            ;;
+        2)
+            USE_TRAEFIK=false
+            INSTALL_TRAEFIK=false
+            ;;
+        *)
+            USE_TRAEFIK=false
+            INSTALL_TRAEFIK=false
+            print_warning "Invalid choice, defaulting to direct port mapping"
+            ;;
+    esac
+fi
+
 # Generate JWT secret
 JWT_SECRET=$(openssl rand -hex 32)
 
@@ -97,6 +168,10 @@ DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
 print_info "Configuration Summary:"
 echo "  Domain: $DOMAIN"
 echo "  Protocol: $PROTOCOL"
+echo "  Traefik: $([ "$USE_TRAEFIK" = true ] && echo "Yes" || echo "No")"
+if [ "$USE_TRAEFIK" = true ] && [ "$INSTALL_TRAEFIK" = true ]; then
+    echo "  Install Traefik: Yes"
+fi
 echo "  JWT Secret: Generated"
 echo "  DB Password: Generated"
 echo ""
@@ -149,7 +224,9 @@ print_status ".env file created"
 
 # Create production docker-compose.yml
 print_info "Creating production docker-compose.yml..."
-cat > docker-compose.production.yml << EOF
+if [ "$USE_TRAEFIK" = true ]; then
+    # Use Traefik configuration
+    cat > docker-compose.production.yml << EOF
 version: '3.8'
 
 services:
@@ -236,6 +313,86 @@ networks:
   web-proxy:
     external: true
 EOF
+else
+    # Use direct port mapping configuration
+    cat > docker-compose.production.yml << EOF
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: restreamer-postgres
+    environment:
+      POSTGRES_DB: restreamer_db
+      POSTGRES_USER: restreamer_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - restreamer-network
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U restreamer_user -d restreamer_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.final
+    container_name: restreamer-backend
+    environment:
+      DATABASE_URL: "postgresql://restreamer_user:${DB_PASSWORD}@restreamer-postgres:5432/restreamer_db"
+      JWT_SECRET: "${JWT_SECRET}"
+      NODE_ENV: "production"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - restreamer-network
+    ports:
+      - "3001:3001"
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.simple
+    container_name: restreamer-frontend
+    environment:
+      NEXT_PUBLIC_BASE_URL: ${PROTOCOL}://${DOMAIN}
+    networks:
+      - restreamer-network
+    ports:
+      - "3000:3000"
+    restart: always
+
+  srs:
+    image: ossrs/srs:6
+    container_name: restreamer-srs
+    ports:
+      - "1935:1935"
+      - "8080:8080"
+      - "10080:10080/udp"
+      - "8000:8000/udp"
+      - "9000:9000"
+      - "5060:5060"
+    volumes:
+      - ./srs-v6-flv-correct.conf:/usr/local/srs/conf/srs.conf
+    command: ["./objs/srs", "-c", "conf/srs.conf"]
+    networks:
+      - restreamer-network
+    restart: always
+
+volumes:
+  postgres_data:
+
+networks:
+  restreamer-network:
+    driver: bridge
+EOF
+fi
 
 print_status "Production docker-compose.yml created"
 
@@ -423,6 +580,68 @@ EOF
 
 chmod +x setup-default-config.sh
 print_status "Setup script created"
+
+# Install Traefik if requested
+if [ "$USE_TRAEFIK" = true ] && [ "$INSTALL_TRAEFIK" = true ]; then
+    echo ""
+    echo "🔧 Installing Traefik"
+    echo "===================="
+    
+    # Create web-proxy network
+    if [ "$WEB_PROXY_NETWORK_EXISTS" = false ]; then
+        print_info "Creating web-proxy network..."
+        docker network create web-proxy
+        print_status "web-proxy network created"
+    fi
+    
+    # Create Traefik configuration
+    print_info "Creating Traefik configuration..."
+    cat > docker-compose.traefik.yml << EOF
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --log.level=INFO
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8081:8080"  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - web-proxy
+    restart: unless-stopped
+
+networks:
+  web-proxy:
+    external: true
+EOF
+    
+    # Start Traefik
+    print_info "Starting Traefik..."
+    docker compose -f docker-compose.traefik.yml up -d
+    print_status "Traefik started"
+    
+    # Wait for Traefik to be ready
+    print_info "Waiting for Traefik to be ready..."
+    sleep 10
+fi
+
+# Create web-proxy network if using Traefik but network doesn't exist
+if [ "$USE_TRAEFIK" = true ] && [ "$WEB_PROXY_NETWORK_EXISTS" = false ]; then
+    print_info "Creating web-proxy network..."
+    docker network create web-proxy
+    print_status "web-proxy network created"
+fi
 
 echo ""
 echo "🎉 Installation Complete!"

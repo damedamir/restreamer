@@ -79,8 +79,8 @@ export default function FLVVideoPlayer({
       flvPlayerRef.current = null;
     }
     
-    // Use SRS port for FLV streams
-    const flvUrl = `http://restreamer.website:8082/live/${rtmpKey}.flv`;
+    // Use main domain with FLV path to avoid mixed content issues
+    const flvUrl = `https://restreamer.website/flv/${rtmpKey}.flv`;
     console.log('🔗 [FLV] FLV URL:', flvUrl);
     
     // First check if the stream is available

@@ -73,6 +73,12 @@ services:
     command: ["./objs/srs", "-c", "conf/srs.conf"]
     networks:
       - web-proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.restreamer-srs.rule=Host(`restreamer.website`) && PathPrefix(`/flv/`)"
+      - "traefik.http.routers.restreamer-srs.entrypoints=websecure"
+      - "traefik.http.routers.restreamer-srs.tls.certresolver=letsencrypt"
+      - "traefik.http.services.restreamer-srs.loadbalancer.server.port=8080"
     restart: always
 
 volumes:

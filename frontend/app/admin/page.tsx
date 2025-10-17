@@ -283,7 +283,7 @@ export default function AdminPage() {
     // Verify token is valid by making a test API call
     const verifyToken = async () => {
       try {
-        const response = await fetch(`${getApiBaseUrl()}/api/configurations`, {
+        const response = await fetch(`${getApiBaseUrl()}/configurations`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -329,7 +329,7 @@ logout();
         return;
       }
       
-      const response = await fetch(`${getApiBaseUrl()}/api/configurations`, {
+      const response = await fetch(`${getApiBaseUrl()}/configurations`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -351,7 +351,7 @@ logout();
 logout();
         return;
       }
-      const response = await fetch(`${getApiBaseUrl()}/api/rtmp-servers`, {
+      const response = await fetch(`${getApiBaseUrl()}/rtmp-servers`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -373,7 +373,7 @@ logout();
 logout();
         return;
       }
-      const response = await fetch(`${getApiBaseUrl()}/api/branded-urls`, {
+      const response = await fetch(`${getApiBaseUrl()}/branded-urls`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -415,7 +415,7 @@ logout();
 logout();
         return;
       }
-      const response = await fetch(`${getApiBaseUrl()}/api/configurations`, {
+      const response = await fetch(`${getApiBaseUrl()}/configurations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -455,7 +455,7 @@ logout();
 logout();
         return;
       }
-      const response = await fetch(`${getApiBaseUrl()}/api/configurations/create-default`, {
+      const response = await fetch(`${getApiBaseUrl()}/configurations/create-default`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -487,7 +487,7 @@ logout();
 logout();
         return;
       }
-      const response = await fetch(`${getApiBaseUrl()}/api/configurations/${config.id}/clone`, {
+      const response = await fetch(`${getApiBaseUrl()}/configurations/${config.id}/clone`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -512,7 +512,7 @@ logout();
 logout();
         return;
       }
-      const response = await fetch(`${getApiBaseUrl()}/api/configurations/${id}`, {
+      const response = await fetch(`${getApiBaseUrl()}/configurations/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -537,7 +537,7 @@ logout();
 logout();
         return;
       }
-      const response = await fetch(`${getApiBaseUrl()}/api/configurations/${id}`, {
+      const response = await fetch(`${getApiBaseUrl()}/configurations/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -566,7 +566,7 @@ logout();
 logout();
         return;
       }
-      const response = await fetch(`${getApiBaseUrl()}/api/branded-urls`, {
+      const response = await fetch(`${getApiBaseUrl()}/branded-urls`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -597,7 +597,7 @@ logout();
 logout();
         return;
       }
-      const response = await fetch(`${getApiBaseUrl()}/api/branded-urls/${id}`, {
+      const response = await fetch(`${getApiBaseUrl()}/branded-urls/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -628,7 +628,7 @@ logout();
 logout();
         return;
       }
-      const response = await fetch(`${getApiBaseUrl()}/api/branded-urls`, {
+      const response = await fetch(`${getApiBaseUrl()}/branded-urls`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

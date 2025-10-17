@@ -62,7 +62,7 @@ export default function BrandedStreamPage() {
       
       try {
         setLoading(true);
-        const apiUrl = `${getApiBaseUrl()}/api/branded-urls/slug/${slug}`;
+        const apiUrl = `${getApiBaseUrl()}/branded-urls/slug/${slug}`;
         console.log('Fetching branded URL from:', apiUrl);
         const response = await fetch(apiUrl);
         console.log('Response status:', response.status);

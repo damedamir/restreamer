@@ -33,6 +33,12 @@ services:
         condition: service_healthy
     networks:
       - restreamer-network
+      - web-proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.restreamer-backend.rule=Host(`restreamer.localhost`) && (PathPrefix(`/api`) || PathPrefix(`/health`))"
+      - "traefik.http.routers.restreamer-backend.entrypoints=web"
+      - "traefik.http.services.restreamer-backend.loadbalancer.server.port=3001"
     restart: always
 
   frontend:
@@ -41,9 +47,15 @@ services:
       dockerfile: Dockerfile.simple
     container_name: restreamer-frontend
     environment:
-      NEXT_PUBLIC_BASE_URL: https://restreamer.website
+      NEXT_PUBLIC_BASE_URL: http://restreamer.localhost
     networks:
       - restreamer-network
+      - web-proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.restreamer-frontend.rule=Host(`restreamer.localhost`)"
+      - "traefik.http.routers.restreamer-frontend.entrypoints=web"
+      - "traefik.http.services.restreamer-frontend.loadbalancer.server.port=3000"
     restart: always
 
   srs:
@@ -69,3 +81,5 @@ volumes:
 networks:
   restreamer-network:
     driver: bridge
+  web-proxy:
+    external: false

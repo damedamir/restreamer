@@ -11,7 +11,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - restreamer-network
+      - web-proxy
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U restreamer_user -d restreamer_db"]
@@ -32,7 +32,6 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - restreamer-network
       - web-proxy
     labels:
       - "traefik.enable=true"
@@ -50,7 +49,6 @@ services:
     environment:
       NEXT_PUBLIC_BASE_URL: {{PROTOCOL}}://{{DOMAIN}}
     networks:
-      - restreamer-network
       - web-proxy
     labels:
       - "traefik.enable=true"
@@ -74,14 +72,12 @@ services:
       - ./srs-v6-flv-correct.conf:/usr/local/srs/conf/srs.conf
     command: ["./objs/srs", "-c", "conf/srs.conf"]
     networks:
-      - restreamer-network
+      - web-proxy
     restart: always
 
 volumes:
   postgres_data:
 
 networks:
-  restreamer-network:
-    driver: bridge
   web-proxy:
     external: true

@@ -20,7 +20,7 @@ docker volume prune -f
 
 # Rebuild and start all services
 echo "🔨 Rebuilding and starting all services..."
-docker compose -f docker-compose.server.yml up -d --build
+docker compose up -d --build
 
 # Wait for services to start
 echo "⏳ Waiting for services to start..."
@@ -28,16 +28,16 @@ sleep 30
 
 # Check service status
 echo "📊 Checking service status..."
-docker compose -f docker-compose.server.yml ps
+docker compose ps
 
 # Test main website
 echo "🌐 Testing main website..."
-curl -I http://hive.restreamer.website
+curl -I https://restreamer.website
 
 # Test API
 echo "🔌 Testing API..."
-curl -s http://hive.restreamer.website/api/branded-urls/slug/brokers-playbook
+curl -s https://restreamer.website/api/health
 
 echo "✅ Server deployment complete!"
-echo "🌐 Website: http://hive.restreamer.website"
-echo "📊 Admin: http://hive.restreamer.website/admin"
+echo "🌐 Website: https://restreamer.website"
+echo "📊 Admin: https://restreamer.website/admin"

@@ -35,7 +35,7 @@ services:
       - web-proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.restreamer-backend.rule=Host(`restreamer.localhost`) && (PathPrefix(`/api`) || PathPrefix(`/health`))"
+      - "traefik.http.routers.restreamer-backend.rule=Host(`restreamer.website`) && (PathPrefix(`/api`) || PathPrefix(`/health`))"
       - "traefik.http.routers.restreamer-backend.entrypoints=websecure"
       - "traefik.http.routers.restreamer-backend.tls.certresolver=letsencrypt"
       - "traefik.http.services.restreamer-backend.loadbalancer.server.port=3001"
@@ -47,12 +47,12 @@ services:
       dockerfile: Dockerfile.simple
     container_name: restreamer-frontend
     environment:
-      NEXT_PUBLIC_BASE_URL: https://restreamer.localhost
+      NEXT_PUBLIC_BASE_URL: https://restreamer.website
     networks:
       - web-proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.restreamer-frontend.rule=Host(`restreamer.localhost`)"
+      - "traefik.http.routers.restreamer-frontend.rule=Host(`restreamer.website`)"
       - "traefik.http.routers.restreamer-frontend.entrypoints=websecure"
       - "traefik.http.routers.restreamer-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.restreamer-frontend.loadbalancer.server.port=3000"

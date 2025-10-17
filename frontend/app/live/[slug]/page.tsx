@@ -49,8 +49,8 @@ export default function BrandedStreamPage() {
         return 'http://localhost:3001';
       }
     }
-    // Server-side or production: use environment variable
-    return process.env.NEXT_PUBLIC_BASE_URL || 'https://hive.restreamer.website';
+    // Server-side or production: use relative URLs (will be proxied by nginx)
+    return '';
   };
 
   // Fetch branded URL configuration

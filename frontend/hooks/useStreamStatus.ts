@@ -26,6 +26,18 @@ export function useStreamStatus({ rtmpKey, onStatusChange, useWebSocket: enableW
   const isMountedRef = useRef(true);
   const rtmpKeyRef = useRef(rtmpKey);
 
+  // Get the correct API base URL
+  const getApiBaseUrl = () => {
+    if (typeof window !== 'undefined') {
+      // Client-side: check if we're on localhost
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      }
+    }
+    // Server-side or production: use relative URLs (will be proxied by nginx)
+    return '';
+  };
+
   // WebSocket integration
   const { isConnected: isWebSocketConnected } = useWebSocket({
     enabled: enableWebSocket,
@@ -72,14 +84,7 @@ export function useStreamStatus({ rtmpKey, onStatusChange, useWebSocket: enableW
         if (!isMountedRef.current || !rtmpKeyRef.current) return;
         
         try {
-          let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-          if (!apiBaseUrl || !apiBaseUrl.endsWith('/api')) {
-            if (typeof window !== 'undefined') {
-              apiBaseUrl = `${window.location.protocol}//${window.location.host}/api`;
-            } else {
-              apiBaseUrl = 'https://hive.restreamer.website/api';
-            }
-          }
+          const apiBaseUrl = getApiBaseUrl();
           
           const response = await fetch(`${apiBaseUrl}/stream-status/${rtmpKeyRef.current}`);
           if (response.ok) {

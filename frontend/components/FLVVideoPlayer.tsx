@@ -29,6 +29,16 @@ export default function FLVVideoPlayer({
   const [isFLVReady, setIsFLVReady] = useState(false);
   const isDestroyed = useRef(false);
 
+  // Get the base URL for FLV streams
+  const getBaseUrl = () => {
+    if (typeof window !== 'undefined') {
+      // Client-side: use current origin or environment variable
+      return process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
+    }
+    // Server-side: use environment variable
+    return process.env.NEXT_PUBLIC_BASE_URL || 'https://restreamer.website';
+  };
+
   // Reset connection state when props change
   useEffect(() => {
     if (isDestroyed.current) return;
@@ -61,7 +71,7 @@ export default function FLVVideoPlayer({
       flvPlayerRef.current = null;
     }
     
-    const flvUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/live/${rtmpKey}.flv`;
+    const flvUrl = `${getBaseUrl()}/live/${rtmpKey}.flv`;
     console.log('🔗 [FLV] FLV URL:', flvUrl);
     
     // Check if FLV.js is available

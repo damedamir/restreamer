@@ -6,13 +6,24 @@ const router = Router();
 
 // Generate unique branded URL from slug
 function generateBrandedUrl(slug: string): string {
-  const baseUrl = process.env.BASE_URL + '/live';
+  const baseUrl = process.env.BASE_URL || process.env.FRONTEND_URL || 'https://restreamer.website';
   const cleanSlug = slug
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .substring(0, 50);
-  return `${baseUrl}/${cleanSlug}`;
+  
+  const finalUrl = `${baseUrl}/live/${cleanSlug}`;
+  console.log('🔍 Backend generateBrandedUrl DEBUG:', {
+    slug,
+    cleanSlug,
+    baseUrl,
+    BASE_URL: process.env.BASE_URL,
+    FRONTEND_URL: process.env.FRONTEND_URL,
+    finalUrl
+  });
+  
+  return finalUrl;
 }
 
 // Get all branded URLs for a user

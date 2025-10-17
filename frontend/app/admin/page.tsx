@@ -226,18 +226,41 @@ export default function AdminPage() {
     if (typeof window !== 'undefined') {
       // Client-side: use current origin or environment variable
       const envUrl = process.env.NEXT_PUBLIC_BASE_URL;
-      console.log('🔍 Client-side getBaseUrl:', { envUrl, windowOrigin: window.location.origin });
+      console.log('🔍 Client-side getBaseUrl DEBUG:', { 
+        envUrl, 
+        envUrlType: typeof envUrl,
+        envUrlLength: envUrl?.length,
+        envUrlTrimmed: envUrl?.trim(),
+        windowOrigin: window.location.origin,
+        isUndefined: envUrl === 'undefined',
+        isEmpty: envUrl?.trim() === '',
+        condition: envUrl && envUrl !== 'undefined' && envUrl.trim() !== ''
+      });
+      
       if (envUrl && envUrl !== 'undefined' && envUrl.trim() !== '') {
+        console.log('✅ Using envUrl:', envUrl);
         return envUrl;
       }
+      console.log('✅ Using window.location.origin:', window.location.origin);
       return window.location.origin;
     }
     // Server-side: use environment variable with fallback
     const envUrl = process.env.NEXT_PUBLIC_BASE_URL;
-    console.log('🔍 Server-side getBaseUrl:', { envUrl });
+    console.log('🔍 Server-side getBaseUrl DEBUG:', { 
+      envUrl, 
+      envUrlType: typeof envUrl,
+      envUrlLength: envUrl?.length,
+      envUrlTrimmed: envUrl?.trim(),
+      isUndefined: envUrl === 'undefined',
+      isEmpty: envUrl?.trim() === '',
+      condition: envUrl && envUrl !== 'undefined' && envUrl.trim() !== ''
+    });
+    
     if (envUrl && envUrl !== 'undefined' && envUrl.trim() !== '') {
+      console.log('✅ Using envUrl:', envUrl);
       return envUrl;
     }
+    console.log('✅ Using fallback:', 'https://restreamer.website');
     return 'https://restreamer.website';
   };
 

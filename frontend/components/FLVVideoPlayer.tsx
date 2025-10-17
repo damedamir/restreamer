@@ -79,8 +79,27 @@ export default function FLVVideoPlayer({
       flvPlayerRef.current = null;
     }
     
-    const flvUrl = `${getBaseUrl()}/live/${rtmpKey}.flv`;
+    // Use SRS port for FLV streams
+    const flvUrl = `http://restreamer.website:8082/live/${rtmpKey}.flv`;
     console.log('🔗 [FLV] FLV URL:', flvUrl);
+    
+    // First check if the stream is available
+    try {
+      const response = await fetch(flvUrl, { method: 'HEAD' });
+      if (!response.ok) {
+        console.log('❌ [FLV] Stream not available:', response.status);
+        setConnectionError('Stream not available');
+        setIsConnecting(false);
+        onError?.('Stream not available');
+        return;
+      }
+    } catch (error) {
+      console.log('❌ [FLV] Stream check failed:', error);
+      setConnectionError('Stream check failed');
+      setIsConnecting(false);
+      onError?.('Stream check failed');
+      return;
+    }
     
     // Check if FLV.js is available
     if (typeof window === 'undefined') {
@@ -207,6 +226,12 @@ export default function FLVVideoPlayer({
       setConnectionError(`FLV error: ${errorDetail}`);
       setIsConnecting(false);
       onError?.(`FLV error: ${errorDetail}`);
+      
+      // Destroy player to prevent error spam
+      if (flvPlayerRef.current) {
+        flvPlayerRef.current.destroy();
+        flvPlayerRef.current = null;
+      }
     });
     
     // Handle video element events

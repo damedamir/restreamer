@@ -1341,7 +1341,7 @@ logout();
                          Slug *
                        </label>
                        <div className="flex items-center space-x-2">
-                         <span className="text-sm text-gray-400">{getBaseUrl()}/live/</span>
+                         <span className="text-sm text-gray-400">{getBaseUrl()}/stream/</span>
                          <input
                            type="text"
                            value={newBrandedUrl.slug}
@@ -1350,7 +1350,7 @@ logout();
                            className="flex-1 px-3 py-2 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                          />
                        </div>
-                       <p className="text-xs text-gray-400 mt-1">This will create: {getBaseUrl()}/live/{newBrandedUrl.slug || 'your-custom-slug'}</p>
+                       <p className="text-xs text-gray-400 mt-1">This will create: {getBaseUrl()}/stream/{newBrandedUrl.slug || 'your-custom-slug'}</p>
                      </div>
 
               {/* Brand Color */}

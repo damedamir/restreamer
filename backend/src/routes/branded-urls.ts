@@ -13,7 +13,7 @@ function generateBrandedUrl(slug: string): string {
     .replace(/\s+/g, '-')
     .substring(0, 50);
   
-  const finalUrl = `${baseUrl}/live/${cleanSlug}`;
+  const finalUrl = `${baseUrl}/stream/${cleanSlug}`;
   console.log('🔍 Backend generateBrandedUrl DEBUG:', {
     slug,
     cleanSlug,
@@ -61,8 +61,56 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Get branded URL by slug (public endpoint)
+// Get branded URL by slug (public endpoint) - legacy route
 router.get('/slug/:slug', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    console.log(`🔍 Branded URL API called for slug: ${slug}`);
+    
+    const brandedUrl = await prisma.brandedUrl.findUnique({
+      where: { slug },
+      include: {
+        rtmpConfig: {
+          select: {
+            name: true,
+            rtmpKey: true,
+            rtmpServer: {
+              select: {
+                name: true,
+                rtmpUrl: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!brandedUrl) {
+      console.log(`❌ Branded URL not found for slug: ${slug}`);
+      return res.status(404).json({ error: 'Branded URL not found' });
+    }
+
+    console.log(`✅ Branded URL found:`, brandedUrl);
+
+    // Increment view count
+    await prisma.brandedUrl.update({
+      where: { id: brandedUrl.id },
+      data: {
+        views: {
+          increment: 1
+        }
+      }
+    });
+
+    res.json(brandedUrl);
+  } catch (error) {
+    console.error('Error fetching branded URL by slug:', error);
+    res.status(500).json({ error: 'Failed to fetch branded URL' });
+  }
+});
+
+// Get branded URL by slug (public endpoint) - new clean route
+router.get('/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
     console.log(`🔍 Branded URL API called for slug: ${slug}`);

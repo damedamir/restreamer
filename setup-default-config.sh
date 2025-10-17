@@ -45,7 +45,7 @@ async function createAdmin() {
   } catch (error) {
     console.error('❌ Error creating admin user:', error);
   } finally {
-    await prisma.\$disconnect();
+    await prisma.$disconnect();
   }
 }
 

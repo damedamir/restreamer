@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import WebRTCVideoPlayer from '../../../components/WebRTCVideoPlayer';
-import Chat from '../../../components/Chat';
-import { useStreamStatus } from '../../../hooks/useStreamStatus';
+import WebRTCVideoPlayer from '../../components/WebRTCVideoPlayer';
+import Chat from '../../components/Chat';
+import { useStreamStatus } from '../../hooks/useStreamStatus';
 
 interface BrandedUrl {
   id: string;

@@ -65,7 +65,7 @@ export default function FLVVideoPlayer({
   }, [rtmpKey, isLive]);
 
   // Start FLV playback
-  const startFLVPlayback = useCallback(() => {
+  const startFLVPlayback = useCallback(async () => {
     if (isDestroyed.current || !videoRef.current || !isLive) return;
     
     console.log('🎬 [FLV] Starting FLV playback for stream:', rtmpKey);

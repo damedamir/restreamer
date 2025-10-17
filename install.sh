@@ -292,7 +292,7 @@ services:
     container_name: restreamer-srs
     ports:
       - "1935:1935"
-      - "8080:8080"
+      - "8082:8080"
       - "10080:10080/udp"
       - "8000:8000/udp"
       - "9000:9000"
@@ -373,7 +373,7 @@ services:
     container_name: restreamer-srs
     ports:
       - "1935:1935"
-      - "8080:8080"
+      - "8082:8080"
       - "10080:10080/udp"
       - "8000:8000/udp"
       - "9000:9000"
@@ -456,7 +456,7 @@ services:
     container_name: restreamer-srs
     ports:
       - "1935:1935"
-      - "8080:8080"
+      - "8082:8080"
       - "10080:10080/udp"
       - "8000:8000/udp"
       - "9000:9000"

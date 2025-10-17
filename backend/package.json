@@ -1,5 +1,5 @@
 {
-  "name": "custom-restreamer-backend",
+  "name": "restreamer-backend",
   "version": "1.0.0",
   "description": "Backend API for Custom Restreamer",
   "main": "dist/index.js",

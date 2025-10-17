@@ -17,7 +17,7 @@ class StreamMonitorService {
   private isMonitoring = false;
   private monitoringInterval: NodeJS.Timeout | null = null;
   private lastStreamStates = new Map<string, boolean>();
-  private readonly SRS_API_URL = 'http://custom-restreamer-srs-1:1985/api/v1/streams/';
+  private readonly SRS_API_URL = 'http://restreamer-srs:1985/api/v1/streams/';
   private readonly ACTIVE_CHECK_INTERVAL = 1000; // 1 second when active
   private readonly IDLE_CHECK_INTERVAL = 30000; // 30 seconds when idle
   private currentInterval = this.IDLE_CHECK_INTERVAL;

@@ -1,5 +1,5 @@
 {
-  "name": "custom-restreamer-frontend",
+  "name": "restreamer-frontend",
   "version": "1.0.0",
   "private": true,
   "scripts": {

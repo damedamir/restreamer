@@ -94,7 +94,7 @@ router.get('/:rtmpKey', async (req, res) => {
 async function checkSRSStreamStatus(rtmpKey: string): Promise<boolean> {
   try {
     console.log(`🔍 Checking SRS stream status for: ${rtmpKey}`);
-    const response = await axios.get('http://custom-restreamer-srs-1:1985/api/v1/streams/');
+    const response = await axios.get('http://restreamer-srs:1985/api/v1/streams/');
     console.log(`🔍 SRS API response:`, response.data);
     
     const streams = response.data.streams || [];
@@ -121,7 +121,7 @@ async function checkSRSStreamStatus(rtmpKey: string): Promise<boolean> {
 // Helper function to get viewer count from SRS
 async function getSRSViewerCount(rtmpKey: string): Promise<number> {
   try {
-    const response = await axios.get('http://custom-restreamer-srs-1:1985/api/v1/streams/');
+    const response = await axios.get('http://restreamer-srs:1985/api/v1/streams/');
     const streams = response.data.streams || [];
     
     const stream = streams.find((s: any) => s.name === rtmpKey);

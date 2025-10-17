@@ -266,7 +266,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.restreamer-backend.rule=Host(\`${DOMAIN}\`) && (PathPrefix(\`/api\`) || PathPrefix(\`/health\`))"
-      - "traefik.http.routers.restreamer-backend.entrypoints=web"
+      - "traefik.http.routers.restreamer-backend.entrypoints=websecure"
+      - "traefik.http.routers.restreamer-backend.tls.certresolver=letsencrypt"
       - "traefik.http.services.restreamer-backend.loadbalancer.server.port=3001"
     restart: always
 
@@ -283,7 +284,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.restreamer-frontend.rule=Host(\`${DOMAIN}\`)"
-      - "traefik.http.routers.restreamer-frontend.entrypoints=web"
+      - "traefik.http.routers.restreamer-frontend.entrypoints=websecure"
+      - "traefik.http.routers.restreamer-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.restreamer-frontend.loadbalancer.server.port=3000"
     restart: always
 
@@ -520,8 +522,8 @@ if [ "$USE_TRAEFIK" = true ] && [ "$INSTALL_TRAEFIK" = true ]; then
         print_status "web-proxy network created"
     fi
     
-    # Create Traefik configuration
-    print_info "Creating Traefik configuration..."
+    # Create Traefik configuration with SSL support
+    print_info "Creating Traefik configuration with SSL support..."
     cat > docker-compose.traefik.yml << EOF
 version: '3.8'
 
@@ -536,6 +538,11 @@ services:
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
+      - --certificatesresolvers.letsencrypt.acme.email=admin@${DOMAIN}
+      - --certificatesresolvers.letsencrypt.acme.storage=/data/acme.json
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
       - --log.level=INFO
     ports:
       - "80:80"
@@ -543,9 +550,13 @@ services:
       - "8081:8080"  # Traefik dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_data:/data
     networks:
       - web-proxy
     restart: unless-stopped
+
+volumes:
+  traefik_data:
 
 networks:
   web-proxy:

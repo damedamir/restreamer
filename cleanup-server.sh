@@ -105,23 +105,46 @@ main() {
     
     print_header "📁 Cleaning Project Directory"
     print_info "Removing project directory..."
-    if [ -d "~/my-server/restreamer" ]; then
-        rm -rf ~/my-server/restreamer
+    if [ -d "$HOME/my-server/restreamer" ]; then
+        rm -rf "$HOME/my-server/restreamer"
         print_success "Project directory removed"
     else
         print_info "Project directory not found"
     fi
     
+    # Also remove from current directory if it exists
+    if [ -d "restreamer" ]; then
+        rm -rf restreamer
+        print_success "Local restreamer directory removed"
+    fi
+    
     print_header "🔄 Re-cloning Repository"
     print_info "Creating fresh project directory..."
-    mkdir -p ~/my-server
-    cd ~/my-server
+    mkdir -p "$HOME/my-server"
+    cd "$HOME/my-server"
     
     print_info "Cloning repository..."
-    git clone https://github.com/damedamir/restreamer.git
-    cd restreamer
+    if [ -d "restreamer" ]; then
+        print_info "Removing existing restreamer directory..."
+        rm -rf restreamer
+    fi
     
-    print_success "Repository cloned successfully"
+    # Clone with retry mechanism
+    for i in {1..3}; do
+        if git clone https://github.com/damedamir/restreamer.git; then
+            print_success "Repository cloned successfully"
+            break
+        else
+            print_warning "Clone attempt $i failed, retrying..."
+            if [ $i -eq 3 ]; then
+                print_error "Failed to clone repository after 3 attempts"
+                exit 1
+            fi
+            sleep 2
+        fi
+    done
+    
+    cd restreamer
     
     print_header "🧹 Removing Generated Files"
     print_info "Removing any generated configuration files..."
@@ -131,6 +154,15 @@ main() {
     rm -f deploy.sh
     rm -f setup-default-config.sh
     print_success "Generated files removed"
+    
+    # Ensure we're in the correct directory
+    if [ ! -f "install.sh" ]; then
+        print_error "install.sh not found! Something went wrong with the clone."
+        print_info "Current directory: $(pwd)"
+        print_info "Directory contents:"
+        ls -la
+        exit 1
+    fi
     
     print_header "✅ Verification"
     print_info "Verifying clean state..."

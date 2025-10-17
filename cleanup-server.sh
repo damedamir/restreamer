@@ -105,17 +105,30 @@ main() {
     
     print_header "📁 Cleaning Project Directory"
     print_info "Removing project directory..."
+    
+    # Remove from home directory
     if [ -d "$HOME/my-server/restreamer" ]; then
+        print_info "Removing $HOME/my-server/restreamer..."
         rm -rf "$HOME/my-server/restreamer"
-        print_success "Project directory removed"
+        print_success "Project directory removed from home"
     else
-        print_info "Project directory not found"
+        print_info "Project directory not found in home"
     fi
     
-    # Also remove from current directory if it exists
+    # Remove from current directory
     if [ -d "restreamer" ]; then
+        print_info "Removing local restreamer directory..."
         rm -rf restreamer
         print_success "Local restreamer directory removed"
+    else
+        print_info "No local restreamer directory found"
+    fi
+    
+    # Remove from my-server directory if we're there
+    if [ -d "my-server/restreamer" ]; then
+        print_info "Removing my-server/restreamer directory..."
+        rm -rf my-server/restreamer
+        print_success "my-server/restreamer directory removed"
     fi
     
     print_header "🔄 Re-cloning Repository"
@@ -123,10 +136,28 @@ main() {
     mkdir -p "$HOME/my-server"
     cd "$HOME/my-server"
     
+    print_info "Current directory: $(pwd)"
+    print_info "Directory contents before clone:"
+    ls -la
+    
     print_info "Cloning repository..."
+    # Force remove any existing restreamer directory
     if [ -d "restreamer" ]; then
-        print_info "Removing existing restreamer directory..."
+        print_info "Force removing existing restreamer directory..."
         rm -rf restreamer
+        print_success "Existing directory removed"
+    fi
+    
+    # Double check it's gone
+    if [ -d "restreamer" ]; then
+        print_error "Directory still exists after removal attempt!"
+        print_info "Trying alternative removal method..."
+        sudo rm -rf restreamer 2>/dev/null || true
+        if [ -d "restreamer" ]; then
+            print_error "Failed to remove directory. Please remove manually:"
+            print_info "rm -rf $HOME/my-server/restreamer"
+            exit 1
+        fi
     fi
     
     # Clone with retry mechanism

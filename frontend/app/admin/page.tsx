@@ -226,14 +226,16 @@ export default function AdminPage() {
     if (typeof window !== 'undefined') {
       // Client-side: use current origin or environment variable
       const envUrl = process.env.NEXT_PUBLIC_BASE_URL;
-      if (envUrl && envUrl !== 'undefined') {
+      console.log('🔍 Client-side getBaseUrl:', { envUrl, windowOrigin: window.location.origin });
+      if (envUrl && envUrl !== 'undefined' && envUrl.trim() !== '') {
         return envUrl;
       }
       return window.location.origin;
     }
     // Server-side: use environment variable with fallback
     const envUrl = process.env.NEXT_PUBLIC_BASE_URL;
-    if (envUrl && envUrl !== 'undefined') {
+    console.log('🔍 Server-side getBaseUrl:', { envUrl });
+    if (envUrl && envUrl !== 'undefined' && envUrl.trim() !== '') {
       return envUrl;
     }
     return 'https://restreamer.website';

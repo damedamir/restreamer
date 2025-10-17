@@ -20,7 +20,7 @@ docker volume prune -f
 
 # Rebuild and start all services
 echo "🔨 Rebuilding and starting all services..."
-docker compose -f docker-compose.production.yml up -d --build
+docker compose -f docker-compose.server.yml up -d --build
 
 # Wait for services to start
 echo "⏳ Waiting for services to start..."
@@ -28,7 +28,7 @@ sleep 30
 
 # Check service status
 echo "📊 Checking service status..."
-docker compose -f docker-compose.production.yml ps
+docker compose -f docker-compose.server.yml ps
 
 # Test main website
 echo "🌐 Testing main website..."

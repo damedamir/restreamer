@@ -117,3 +117,7 @@ playwright/.cache/
 # Temporary files
 *.tmp
 *.temp
+
+# Local development docker-compose files
+docker-compose.traefik.yml
+docker-compose.production.yml
